@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Pacer",
+    "slug": "pacer",
+    "scheme": "pacer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.example.pacer",
+      "supportsTablet": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["location", "audio", "bluetooth-central"],
+        "NSLocationWhenInUseUsageDescription": "Pacer uses your location to measure distance and pace during your runs.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Pacer keeps tracking your run while your phone is locked or in your pocket.",
+        "NSBluetoothAlwaysUsageDescription": "Pacer connects to your heart-rate strap."
+      }
+    },
+    "android": {
+      "package": "com.example.pacer",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Pacer keeps tracking your run while your phone is locked or in your pocket.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "Pacer connects to your heart-rate strap."
+        }
+      ]
+    ]
+  }
+}
