@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Svg, { Circle, Polyline } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
+import { BarChart } from '../../src/charts';
+import { PB_DISTANCES, runBests } from '../../src/records';
 import { Button, Card, Screen, SectionLabel, Stat } from '../../src/ui';
 import { kindColor, useTheme } from '../../src/theme';
 import { deleteRun, getRun } from '../../src/storage';
@@ -33,6 +36,9 @@ export default function RunDetail() {
   }
 
   const fastest = run.splits.length > 1 ? Math.min(...run.splits.map((s) => s.pace || Infinity)) : NaN;
+  const bests = runBests(run);
+  const efforts = PB_DISTANCES.filter((d) => bests[d.key]);
+  const paced = run.splits.filter((s) => s.pace > 0);
 
   return (
     <Screen inset={false}>
@@ -55,6 +61,38 @@ export default function RunDetail() {
         <Card>
           <SectionLabel>Route</SectionLabel>
           <RouteSketch route={run.route} color={t.accent} start={t.walk} />
+        </Card>
+      ) : null}
+
+      {efforts.length ? (
+        <Card>
+          <SectionLabel>Best efforts</SectionLabel>
+          {efforts.map((d, i) => {
+            const pb = run.pbs?.includes(d.key);
+            return (
+              <View key={d.key} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: t.line }}>
+                <Text style={{ flex: 1, color: t.text, fontWeight: '600' }}>{d.label}</Text>
+                {pb ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 12 }}>
+                    <Ionicons name="trophy" size={14} color={t.accent} />
+                    <Text style={{ color: t.accent, fontWeight: '700', fontSize: 13 }}>{run.simulated ? 'Practice PB' : 'Personal best'}</Text>
+                  </View>
+                ) : null}
+                <Text style={{ color: t.text, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{fmtTime(bests[d.key])}</Text>
+              </View>
+            );
+          })}
+        </Card>
+      ) : null}
+
+      {paced.length >= 2 ? (
+        <Card>
+          <BarChart
+            title="Pace per split (taller is faster)"
+            initial={Math.max(0, paced.findIndex((s) => s.pace === fastest))}
+            data={paced.map((s) => ({ label: `${+(s.distance / 1000).toFixed(1)}`, name: `Split to ${fmtKm(s.distance)} km`, value: 1000 / s.pace, text: `${fmtPace(s.pace)} /km${s.hr ? `, ${s.hr} bpm` : ''}` }))}
+          />
+          <Text style={{ color: t.muted, fontSize: 12, textAlign: 'center' }}>km</Text>
         </Card>
       ) : null}
 

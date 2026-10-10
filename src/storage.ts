@@ -56,6 +56,7 @@ export async function deleteWorkout(id: string) {
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'distance', goalKm: '5', targetPace: '', splitEvery: 1000,
   voice: true, maxHr: '', simulate: false, workoutId: 'preset-beginner',
+  coach: 'friendly', voiceId: null, voiceRate: 1,
 };
 export async function loadSettings(): Promise<Settings> {
   return { ...DEFAULT_SETTINGS, ...(await read<Partial<Settings>>(SETTINGS, {})) };

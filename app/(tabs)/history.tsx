@@ -1,11 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Card, Screen, Title } from '../../src/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { Card, Screen, SectionLabel, Title } from '../../src/ui';
+import { BarChart, Datum, LineChart } from '../../src/charts';
+import { personalBests } from '../../src/records';
 import { useTheme } from '../../src/theme';
 import { loadRuns } from '../../src/storage';
 import { RunRecord } from '../../src/types';
-import { fmtDate, fmtKm, fmtPace, fmtTime } from '../../src/format';
+import { fmtDate, fmtKm, fmtPace, fmtShortDate, fmtTime } from '../../src/format';
 
 export default function HistoryScreen() {
   const t = useTheme();
@@ -24,6 +27,10 @@ export default function HistoryScreen() {
   const weekAgo = Date.now() - 7 * 864e5;
   const week = real.filter((r) => Date.parse(r.startedAt) >= weekAgo);
   const sum = (list: RunRecord[]) => list.reduce((a, r) => a + r.distance, 0);
+  const pbs = personalBests(real);
+  const weeks = weeklyDistance(real, 8);
+  const paceRuns = real.filter((r) => r.avgPace > 0 && r.distance >= 500).slice(0, 12).reverse();
+  const paces = paceRuns.map((r) => r.avgPace);
 
   return (
     <Screen>
@@ -42,6 +49,38 @@ export default function HistoryScreen() {
       <Text style={{ color: t.muted, marginBottom: 16, marginTop: 2 }}>
         All time: {fmtKm(sum(real))} km across {real.length} {real.length === 1 ? 'run' : 'runs'}
       </Text>
+
+      {pbs.length ? (
+        <Card>
+          <SectionLabel>Personal bests</SectionLabel>
+          {pbs.map((pb, i) => (
+            <Pressable key={pb.key} onPress={() => router.push(`/run-detail/${pb.runId}`)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: t.line }}>
+              <Ionicons name="trophy" size={18} color={t.accent} style={{ marginRight: 10 }} />
+              <Text style={{ flex: 1, color: t.text, fontWeight: '600' }}>{pb.label}</Text>
+              <Text style={{ color: t.muted, marginRight: 12 }}>{fmtShortDate(pb.date)}</Text>
+              <Text style={{ color: t.text, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{fmtTime(pb.time)}</Text>
+            </Pressable>
+          ))}
+        </Card>
+      ) : null}
+
+      {real.length ? (
+        <Card>
+          <BarChart title="Distance per week" data={weeks} maxLabel={`${Math.max(...weeks.map((w) => w.value)).toFixed(1)} km`} />
+        </Card>
+      ) : null}
+
+      {paceRuns.length >= 2 ? (
+        <Card>
+          <LineChart
+            title="Average pace, recent runs (up is faster)"
+            invert
+            topLabel={fmtPace(Math.min(...paces))}
+            bottomLabel={fmtPace(Math.max(...paces))}
+            data={paceRuns.map((r) => ({ label: fmtShortDate(r.startedAt), value: r.avgPace, text: `${fmtPace(r.avgPace)} /km, ${fmtKm(r.distance)} km` }))}
+          />
+        </Card>
+      ) : null}
 
       {runs.length === 0 ? (
         <Card>
@@ -84,4 +123,20 @@ function Tag({ label }: { label: string }) {
       {label}
     </Text>
   );
+}
+
+/** Total km for each of the last `n` weeks (Monday to Sunday), oldest first. */
+function weeklyDistance(runs: RunRecord[], n: number): Datum[] {
+  const monday = new Date();
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return Array.from({ length: n }, (_, k) => {
+    const start = new Date(monday);
+    start.setDate(start.getDate() - 7 * (n - 1 - k));
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    const km = runs.filter((r) => { const d = Date.parse(r.startedAt); return d >= +start && d < +end; }).reduce((a, r) => a + r.distance, 0) / 1000;
+    const label = k === n - 1 ? 'This wk' : fmtShortDate(start.toISOString());
+    return { label, value: km, text: `${km.toFixed(2)} km` };
+  });
 }

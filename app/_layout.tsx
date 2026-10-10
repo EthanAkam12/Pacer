@@ -20,6 +20,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="run" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         <Stack.Screen name="run-detail/[id]" options={{ headerShown: true, title: 'Run' }} />
+        <Stack.Screen name="coach" options={{ headerShown: true, title: 'Coach', presentation: 'modal' }} />
         <Stack.Screen name="workout/edit" options={{ headerShown: true, title: 'Interval workout', presentation: 'modal' }} />
       </Stack>
     </>

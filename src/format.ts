@@ -24,6 +24,9 @@ export function fmtDate(iso: string): string {
   return `${day}, ${time}`;
 }
 
+/** "12 Oct" */
+export const fmtShortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
 /** "6:00" -> 360, "6" -> 360 (minutes). Used for both pace and durations. */
 export function parseDuration(str: string): number | null {
   const m = str.trim().match(/^(\d{1,3})(?::(\d{1,2}))?$/);

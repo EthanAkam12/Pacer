@@ -11,6 +11,7 @@ import { estimateMinutes, summarize } from '../../src/intervals';
 import { session, SIM_SPEED } from '../../src/session';
 import { useHr } from '../../src/hooks';
 import { connectStrap, disconnectStrap, scanForStraps } from '../../src/heartRate';
+import { COACHES } from '../../src/coach';
 
 const DISTANCES = [1, 3, 5, 10, 21.1];
 
@@ -56,6 +57,9 @@ export default function StartScreen() {
       voice: s.voice,
       maxHr: maxHr >= 120 && maxHr <= 230 ? maxHr : 190,
       simulate: s.simulate,
+      coach: s.coach,
+      voiceId: s.voiceId,
+      voiceRate: s.voiceRate,
     };
     setStarting(true);
     const res = await session.start(plan);
@@ -128,6 +132,17 @@ export default function StartScreen() {
             <Ionicons name="chevron-forward" size={18} color={t.muted} />
           </Pressable>
         ))}
+      </Card>
+
+      <Card>
+        <Pressable onPress={() => router.push('/coach')} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Ionicons name="chatbubble-ellipses" size={24} color={t.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '700', fontSize: 16, color: t.text }}>Coach: {COACHES[s.coach].name}</Text>
+            <Text style={{ color: t.muted, fontSize: 14 }}>{COACHES[s.coach].blurb}</Text>
+          </View>
+          <Text style={{ color: t.accent, fontWeight: '700' }}>Change</Text>
+        </Pressable>
       </Card>
 
       <Card>

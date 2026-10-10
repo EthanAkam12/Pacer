@@ -18,6 +18,8 @@ export interface Workout {
 
 export type RunMode = 'distance' | 'intervals';
 
+export type CoachStyle = 'friendly' | 'tough' | 'calm' | 'minimal';
+
 export interface Plan {
   mode: RunMode;
   goalMeters: number;
@@ -27,6 +29,9 @@ export interface Plan {
   voice: boolean;
   maxHr: number;
   simulate: boolean;
+  coach: CoachStyle;
+  voiceId: string | null;
+  voiceRate: number;
 }
 
 export interface Split {
@@ -61,6 +66,10 @@ export interface RunRecord {
   route: { lat: number; lon: number }[];
   completed: boolean;
   simulated: boolean;
+  /** Fastest time in seconds for each standard distance covered, keyed by metres. Missing on older runs. */
+  bests?: Record<string, number>;
+  /** Distance keys that were personal bests when this run was saved. */
+  pbs?: string[];
 }
 
 export interface Settings {
@@ -72,6 +81,9 @@ export interface Settings {
   maxHr: string;
   simulate: boolean;
   workoutId: string | null;
+  coach: CoachStyle;
+  voiceId: string | null;
+  voiceRate: number;
 }
 
 export type Phase = 'idle' | 'running' | 'paused' | 'finishing' | 'finished';
