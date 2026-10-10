@@ -10,13 +10,16 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 
 **Working:** the app runs on Ethan's phone in Expo Go. The Run tab, Practice mode, the live run screen, the voice coach, History and Intervals all load.
 
-- **Project location:** `C:\Users\Ethan\Desktop\pacer`
+- **Code:** GitHub `EthanAkam12/Pacer`, branch `claude/transfer-chat-to-code-wcjs0u`. Ethan gets changes with `git pull` (see `docs/GET-THE-CODE.md`).
+- **Project location:** `C:\Users\Ethan\Desktop\pacer-app` (a Git clone). The old `C:\Users\Ethan\Desktop\pacer` folder is a backup from before GitHub.
 - **How to start it:**
 
   ```
-  cd C:\Users\Ethan\Desktop\pacer
-  npx expo start --go --tunnel
+  cd C:\Users\Ethan\Desktop\pacer-app
+  npm run go
   ```
+
+  `npm run go` is `npx expo start --go --tunnel` (Expo Go). `npm run dev` is `npx expo start --dev-client --tunnel` (development build, see `docs/DEV-BUILD.md`).
 
   Then scan the QR code with Expo Go on the phone. Add `-c` to clear the cache after big changes.
 - **Why `--go`:** `expo-dev-client` is installed, so without `--go` the QR code targets a development build and Expo Go closes immediately.
@@ -43,14 +46,18 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 | `app/(tabs)/_layout.tsx` | Bottom tabs: Run, Intervals, History (Ionicons) |
 | `app/(tabs)/index.tsx` | Run setup: distance or intervals, distance chips, target pace, split frequency, heart-rate strap, voice and practice toggles, max HR, Start |
 | `app/(tabs)/workouts.tsx` | Interval workout list, "Use for next run", Edit, Build new |
-| `app/(tabs)/history.tsx` | Last 7 days and all-time totals (practice runs excluded), list of runs |
+| `app/(tabs)/history.tsx` | Last 7 days and all-time totals, personal bests, distance-per-week chart, average-pace trend chart, list of runs (practice runs are left out of totals, PBs and charts) |
 | `app/run.tsx` | Live run screen, always on a cobalt background: current pace, stats, progress lane or interval countdown, coach bubble, Pause/Resume, Finish |
-| `app/run-detail/[id].tsx` | Run details: stats, route sketch (react-native-svg), interval results, splits with fastest highlighted, delete |
+| `app/run-detail/[id].tsx` | Run details: stats, route sketch (react-native-svg), best efforts with PB trophies, pace-per-split chart, interval results, splits with fastest highlighted, delete |
+| `app/coach.tsx` | Coach settings: personality, speaking speed, voice picker. Tapping any option plays a sample. |
 | `app/workout/edit.tsx` | Workout builder: name, warm-up, steps (run/walk/rest, by time or distance), repeats, cool-down, preview strip |
 | `src/session.ts` | **Coaching engine.** A singleton `session` handles distance, pace, splits, intervals and everything the coach says. Includes practice-mode simulation. |
 | `src/tracking.ts` | GPS: background updates via TaskManager, with `watchPositionAsync` as the fallback |
 | `src/heartRate.ts` | BLE heart-rate strap (service 0x180D, characteristic 0x2A37). Loaded lazily so Expo Go doesn't crash. |
-| `src/speech.ts` | expo-speech wrapper. Important lines queue; encouragement is skipped if the coach is already talking. |
+| `src/speech.ts` | expo-speech wrapper. Important lines queue; encouragement is skipped if the coach is already talking. Holds the chosen voice and rate; lists English voices. |
+| `src/coach.ts` | Coach personalities (Friendly, Tough, Calm, Just the numbers): every phrase the coach says apart from the numbers |
+| `src/records.ts` | Best efforts (fastest 1 km, 1 mile, 5 km, 10 km, half, marathon within any run), personal bests, new-PB detection |
+| `src/charts.tsx` | Bar and line charts (react-native-svg). Tap or drag to read a value. |
 | `src/storage.ts` | AsyncStorage: runs, workouts (seeded with presets) and settings |
 | `src/intervals.ts` | Presets, labels, spoken step names, time estimates |
 | `src/format.ts` | Pace, time and date formatting, spoken forms, parsing, haversine distance |
@@ -76,17 +83,16 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **Heart rate:** warning above 93% of max (default 190).
 - **Encouragement:** after 4 or more minutes with 60 seconds of quiet.
 - **Practice mode:** `SIM_SPEED = 5` runs the clock five times faster, with a scripted slowdown and late fade so every cue can be heard.
-- **Saving:** runs of 30 seconds or more, or 50 m or more, are saved with a route thinned to about 400 points.
+- **Personality:** `plan.coach` picks a phrasebook from `src/coach.ts`. Numbers are always spoken; only the wording changes. "Just the numbers" has no encouragement.
+- **Personal bests:** the session keeps a distance-over-time track for the whole run. At the finish it works out best efforts, compares them with earlier runs (practice runs only compete with practice runs) and announces the longest new PB.
+- **Saving:** runs of 30 seconds or more, or 50 m or more, are saved with a route thinned to about 400 points, plus `bests` and `pbs`.
 
 ## Known limitations and next steps
 
-- **Expo Go limits:** no background GPS (the screen must stay on) and no heart-rate straps. Both need a development build: `npx expo run:android` with Android Studio, or `eas build --profile development`. Change `com.example.pacer` in `app.json` to a real bundle ID first.
+- **Expo Go limits:** no background GPS (the screen must stay on), no heart-rate straps, and Expo Go shows its own icon and splash. All of these need a development build. `eas.json` is set up, and `docs/DEV-BUILD.md` has step-by-step instructions (EAS cloud build, no Android Studio). Bundle ID is `com.ethanakam.pacer`.
+- **App icon and splash:** yellow speech bubble with two cobalt chevrons on cobalt (`assets/images/`). Changing them needs a new development build.
 - **Not yet tested on a real outdoor run:** GPS accuracy, speech while backgrounded, and battery use.
 - **Ideas:**
-  - Coach voice and personality options
   - Apple Watch / Health Connect heart rate
   - Map view (react-native-maps)
-  - Pace and distance charts over time
   - Cloud sync and accounts
-  - Personal bests
-  - Custom app icon and splash screen
