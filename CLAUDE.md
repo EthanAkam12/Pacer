@@ -42,20 +42,24 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 
 | Path | Purpose |
 |---|---|
-| `app/_layout.tsx` | Root stack. Imports `src/tracking` at startup to register the background location task. |
-| `app/(tabs)/_layout.tsx` | Bottom tabs: Run, Intervals, History (Ionicons) |
-| `app/(tabs)/index.tsx` | Run setup: distance or intervals, distance chips, target pace, split frequency, heart-rate strap, voice and practice toggles, max HR, Start |
+| `app/_layout.tsx` | Root stack inside `AuthProvider`. `Stack.Protected` guards: app screens need a verified user, `(auth)` screens show when signed out, verify shows when signed in but unverified. If Firebase isn't configured, sign-in is skipped. Imports `src/tracking` at startup to register the background location task. |
+| `app/(auth)/sign-in.tsx`, `sign-up.tsx`, `verify.tsx`, `forgot.tsx` | Sign in; create account (email, password at least 8 characters, confirm); "check your email" screen that polls for verification and can resend (60 s cooldown); password reset email |
+| `app/(tabs)/settings.tsx` | Account (email, change password via reset email, sign out, delete account with password), coach, max heart rate, heart-rate updates, about |
+| `app/(tabs)/_layout.tsx` | Bottom tabs: Run, Intervals, History, Settings (Ionicons) |
+| `app/(tabs)/index.tsx` | Run setup: distance or intervals, distance chips, target pace, split frequency, heart-rate strap and heart-rate updates, coach card, voice and practice toggles, Start. Resolves the coach's voice before starting. |
 | `app/(tabs)/workouts.tsx` | Interval workout list, "Use for next run", Edit, Build new |
 | `app/(tabs)/history.tsx` | Last 7 days and all-time totals, personal bests, distance-per-week chart, average-pace trend chart, list of runs (practice runs are left out of totals, PBs and charts) |
 | `app/run.tsx` | Live run screen, always on a cobalt background: current pace, stats, progress lane or interval countdown, coach bubble, Pause/Resume, Finish |
 | `app/run-detail/[id].tsx` | Run details: stats, route sketch (react-native-svg), best efforts with PB trophies, pace-per-split chart, interval results, splits with fastest highlighted, delete |
-| `app/coach.tsx` | Coach settings: personality, speaking speed, voice picker. Tapping any option plays a sample. |
+| `app/coach.tsx` | Pick a named coach (shows traits, a sample line and the phone voice it will use), speaking speed, optional voice override, tip for downloading better voices. Tapping plays a sample. |
 | `app/workout/edit.tsx` | Workout builder: name, warm-up, steps (run/walk/rest, by time or distance), repeats, cool-down, preview strip |
 | `src/session.ts` | **Coaching engine.** A singleton `session` handles distance, pace, splits, intervals and everything the coach says. Includes practice-mode simulation. |
 | `src/tracking.ts` | GPS: background updates via TaskManager, with `watchPositionAsync` as the fallback |
 | `src/heartRate.ts` | BLE heart-rate strap (service 0x180D, characteristic 0x2A37). Loaded lazily so Expo Go doesn't crash. |
-| `src/speech.ts` | expo-speech wrapper. Important lines queue; encouragement is skipped if the coach is already talking. Holds the chosen voice and rate; lists English voices. |
-| `src/coach.ts` | Coach personalities (Friendly, Tough, Calm, Just the numbers): every phrase the coach says apart from the numbers |
+| `src/speech.ts` | expo-speech wrapper. Important lines queue; others are skipped (and `speak` returns false) if the coach is already talking. Lists English voices, filters out Apple's novelty/robotic voices, works out gender and quality, and picks the best voice for a coach (`bestVoiceFor`, `voiceFor`). |
+| `src/coach.ts` | Phrasebooks per style (friendly, tough, calm, cheeky, minimal) and the named coaches (`PERSONAS`: Laura, Dave, Maya, Jack, Sam) with traits, voice gender/accents, rate and pitch. `personaFor` also maps old style names. |
+| `src/firebase.ts` | Firebase app + Auth with AsyncStorage persistence. Config from `EXPO_PUBLIC_FIREBASE_*` or the values in the file; `authConfigured` is false until set. |
+| `src/auth.tsx` | `AuthProvider`/`useAuth`, sign up (sends verification email), sign in, resend, reset password, sign out, delete account (re-authenticates), plain-English error messages |
 | `src/records.ts` | Best efforts (fastest 1 km, 1 mile, 5 km, 10 km, half, marathon within any run), personal bests, new-PB detection |
 | `src/charts.tsx` | Bar and line charts (react-native-svg). Tap or drag to read a value. |
 | `src/storage.ts` | AsyncStorage: runs, workouts (seeded with presets) and settings |
@@ -83,7 +87,9 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **Heart rate:** warning above 93% of max (default 190).
 - **Encouragement:** after 4 or more minutes with 60 seconds of quiet.
 - **Practice mode:** `SIM_SPEED = 5` runs the clock five times faster, with a scripted slowdown and late fade so every cue can be heard.
-- **Personality:** `plan.coach` picks a phrasebook from `src/coach.ts`. Numbers are always spoken; only the wording changes. "Just the numbers" has no encouragement.
+- **Coaches:** Settings store a persona id. At run start the Run tab resolves the persona's style, voice (best match on the phone unless overridden), rate and pitch into the `Plan`. Numbers are always spoken; only the wording changes. Sam ("minimal") has no encouragement.
+- **Pace wording:** said the way runners say it, e.g. "5 30 per kilometre", "5 oh 5 per kilometre".
+- **Heart-rate updates:** `plan.hrEvery` is `off`, `split` (with split messages, and with rep results in intervals), `t30`/`t60`/`t120`/`t300` (seconds) or `d500`/`d1000` (metres; merged into the split message when they land together). Lines say how hard it is ("Heart rate 152, steady") from the share of max HR. The high heart-rate warning always runs.
 - **Personal bests:** the session keeps a distance-over-time track for the whole run. At the finish it works out best efforts, compares them with earlier runs (practice runs only compete with practice runs) and announces the longest new PB.
 - **Saving:** runs of 30 seconds or more, or 50 m or more, are saved with a route thinned to about 400 points, plus `bests` and `pbs`.
 
@@ -92,6 +98,8 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **Expo Go limits:** no background GPS (the screen must stay on), no heart-rate straps, and Expo Go shows its own icon and splash. All of these need a development build. `eas.json` is set up, and `docs/DEV-BUILD.md` has step-by-step instructions (EAS cloud build, no Android Studio). Bundle ID is `com.ethanakam.pacer`.
 - **App icon and splash:** yellow speech bubble with two cobalt chevrons on cobalt (`assets/images/`). Changing them needs a new development build.
 - **Not yet tested on a real outdoor run:** GPS accuracy, speech while backgrounded, and battery use.
+- **Accounts:** code is done, but the Firebase project isn't set up yet, so sign-in is skipped. `docs/ACCOUNTS.md` has the steps; Ethan sends the config values and they go in `src/firebase.ts`. Runs are still stored only on the phone, not per account.
+- **Voices:** on-device text-to-speech only. More natural options would need a cloud voice service (paid) behind a server.
 - **Ideas:**
   - Apple Watch / Health Connect heart rate
   - Map view (react-native-maps)

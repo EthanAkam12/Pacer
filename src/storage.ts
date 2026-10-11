@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RunRecord, Settings, Workout } from './types';
+import { HrEvery, RunRecord, Settings, Workout } from './types';
 import { PRESETS } from './intervals';
 
 const RUNS = 'pacer.runs.v1';
@@ -56,8 +56,13 @@ export async function deleteWorkout(id: string) {
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'distance', goalKm: '5', targetPace: '', splitEvery: 1000,
   voice: true, maxHr: '', simulate: false, workoutId: 'preset-beginner',
-  coach: 'friendly', voiceId: null, voiceRate: 1,
+  coach: 'maya', voiceId: null, voiceRate: 1, hrEvery: 'split',
 };
+export const HR_OPTIONS: { label: string; value: HrEvery }[] = [
+  { label: 'Off', value: 'off' }, { label: 'Each split', value: 'split' },
+  { label: '30 sec', value: 't30' }, { label: '1 min', value: 't60' }, { label: '2 min', value: 't120' }, { label: '5 min', value: 't300' },
+  { label: '0.5 km', value: 'd500' }, { label: '1 km', value: 'd1000' },
+];
 export async function loadSettings(): Promise<Settings> {
   return { ...DEFAULT_SETTINGS, ...(await read<Partial<Settings>>(SETTINGS, {})) };
 }

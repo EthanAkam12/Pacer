@@ -37,9 +37,11 @@ export function parseDuration(str: string): number | null {
 export const parsePace = parseDuration;
 
 // ----- spoken forms -----
+/** Said the way runners say it: 330 -> "5 30 per kilometre", 305 -> "5 oh 5 per kilometre". */
 export function sayPace(spk: number): string {
   const t = Math.round(spk), m = Math.floor(t / 60), s = t % 60;
-  return `${m} minute${m === 1 ? '' : 's'}${s ? ' ' + s : ''} per kilometre`;
+  if (!s) return `${m} minute${m === 1 ? '' : 's'} per kilometre`;
+  return `${m} ${s < 10 ? `oh ${s}` : s} per kilometre`;
 }
 export function sayTime(sec: number): string {
   const t = Math.round(sec), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;

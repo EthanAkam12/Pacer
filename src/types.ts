@@ -18,7 +18,10 @@ export interface Workout {
 
 export type RunMode = 'distance' | 'intervals';
 
-export type CoachStyle = 'friendly' | 'tough' | 'calm' | 'minimal';
+export type CoachStyle = 'friendly' | 'tough' | 'calm' | 'minimal' | 'cheeky';
+
+/** When the coach reads out heart rate: never, with each split, every N seconds (t30) or every N metres (d500). */
+export type HrEvery = 'off' | 'split' | 't30' | 't60' | 't120' | 't300' | 'd500' | 'd1000';
 
 export interface Plan {
   mode: RunMode;
@@ -32,6 +35,8 @@ export interface Plan {
   coach: CoachStyle;
   voiceId: string | null;
   voiceRate: number;
+  voicePitch: number;
+  hrEvery: HrEvery;
 }
 
 export interface Split {
@@ -81,9 +86,11 @@ export interface Settings {
   maxHr: string;
   simulate: boolean;
   workoutId: string | null;
-  coach: CoachStyle;
+  /** Coach persona id, e.g. 'laura'. Older saves hold a style name, which `personaFor` maps across. */
+  coach: string;
   voiceId: string | null;
   voiceRate: number;
+  hrEvery: HrEvery;
 }
 
 export type Phase = 'idle' | 'running' | 'paused' | 'finishing' | 'finished';

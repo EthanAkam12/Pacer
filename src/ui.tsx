@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleProp, StyleSheet, Switch, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
+import { Image, Pressable, ScrollView, StyleProp, StyleSheet, Switch, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { kindColor, useTheme } from './theme';
 import { Workout } from './types';
@@ -64,16 +64,16 @@ export function Segmented<T extends string | number>({ options, value, onChange 
   );
 }
 
-export function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+export function Chip({ label, active, onPress, small }: { label: string; active: boolean; onPress: () => void; small?: boolean }) {
   const t = useTheme();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999, backgroundColor: active ? t.accent : t.chip }}
+      style={{ paddingHorizontal: small ? 12 : 16, paddingVertical: small ? 7 : 9, borderRadius: 999, backgroundColor: active ? t.accent : t.chip }}
     >
-      <Text style={{ fontWeight: '700', fontSize: 15, color: active ? t.onAccent : t.text }}>{label}</Text>
+      <Text style={{ fontWeight: '700', fontSize: small ? 14 : 15, color: active ? t.onAccent : t.text }}>{label}</Text>
     </Pressable>
   );
 }
@@ -150,6 +150,44 @@ export function StepStrip({ workout, height = 10 }: { workout: Workout; height?:
       {steps.map((s, i) => (
         <View key={i} style={{ flex: Math.max(estimateSeconds(s), 1), backgroundColor: kindColor(t, s.kind) }} />
       ))}
+    </View>
+  );
+}
+
+export function PasswordField({ label, hint, ...props }: TextInputProps & { label: string; hint?: string }) {
+  const t = useTheme();
+  const [show, setShow] = React.useState(false);
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={{ fontWeight: '600', color: t.text, marginBottom: 6 }}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: t.bg, borderRadius: 12, borderWidth: 1, borderColor: t.line }}>
+        <TextInput
+          placeholderTextColor={t.muted}
+          secureTextEntry={!show}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={{ flex: 1, minWidth: 0, paddingHorizontal: 12, paddingVertical: 11, fontSize: 17, color: t.text }}
+          {...props}
+        />
+        <Pressable onPress={() => setShow(!show)} accessibilityRole="button" style={{ paddingHorizontal: 12, paddingVertical: 10 }}>
+          <Text style={{ color: t.accent, fontWeight: '700' }}>{show ? 'Hide' : 'Show'}</Text>
+        </Pressable>
+      </View>
+      {hint ? <Text style={{ color: t.muted, fontSize: 13, marginTop: 4 }}>{hint}</Text> : null}
+    </View>
+  );
+}
+
+/** Header for the sign-in screens: the app mark, a title and a line of explanation. */
+export function AuthHeader({ title, sub }: { title: string; sub: string }) {
+  const t = useTheme();
+  return (
+    <View style={{ alignItems: 'center', marginTop: 24, marginBottom: 24 }}>
+      <View style={{ width: 76, height: 76, borderRadius: 20, backgroundColor: '#1B3BCF', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Image source={require('../assets/images/splash-icon.png')} style={{ width: 64, height: 64 }} />
+      </View>
+      <Text style={{ fontSize: 30, fontWeight: '800', color: t.text, letterSpacing: -0.5, textAlign: 'center' }}>{title}</Text>
+      <Text style={{ fontSize: 16, color: t.muted, marginTop: 6, lineHeight: 22, textAlign: 'center' }}>{sub}</Text>
     </View>
   );
 }

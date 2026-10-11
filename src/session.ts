@@ -62,6 +62,8 @@ class RunSession {
   private lastSlowWarn = -999;
   private warnedAt = -999;
   private lastHrWarn = -999;
+  private nextHrT = 0;
+  private nextHrD = 0;
   private lastSpoke = 0;
   private lastMotivate = 0;
   private coachLine = '';
@@ -82,7 +84,7 @@ class RunSession {
     this.splits = []; this.nextSplit = 1000; this.lastSplitT = 0; this.lastSplitD = 0; this.splitHr = [];
     this.steps = []; this.stepIdx = 0; this.stepStartT = 0; this.stepStartD = 0; this.stepHr = []; this.repRef = null; this.intervals = [];
     this.flags = new Set(); this.slowSince = null; this.slowNow = false; this.lastSlowWarn = -999; this.warnedAt = -999;
-    this.lastHrWarn = -999; this.lastSpoke = 0; this.lastMotivate = 0; this.coachLine = ''; this.gpsStatus = ''; this.notice = null;
+    this.lastHrWarn = -999; this.nextHrT = 0; this.nextHrD = 0; this.lastSpoke = 0; this.lastMotivate = 0; this.coachLine = ''; this.gpsStatus = ''; this.notice = null;
     this.hrSum = 0; this.hrN = 0; this.hrMax = 0; this.simHr = 105; this.recordId = null;
   }
 
@@ -93,7 +95,7 @@ class RunSession {
     this.fresh();
     this.plan = plan;
     this.lines = COACHES[plan.coach] ?? COACHES.friendly;
-    configureSpeech({ voiceId: plan.voiceId, rate: plan.voiceRate });
+    configureSpeech({ voiceId: plan.voiceId, rate: plan.voiceRate, pitch: plan.voicePitch });
 
     if (!plan.simulate) {
       const res = await startTracking((locs) => this.onLocations(locs));
@@ -106,6 +108,9 @@ class RunSession {
     this.startedAt = Date.now();
     this.segStart = this.now();
     this.nextSplit = plan.splitEvery;
+    const every = Number(plan.hrEvery.slice(1));
+    this.nextHrT = plan.hrEvery.startsWith('t') ? every : Infinity;
+    this.nextHrD = plan.hrEvery.startsWith('d') ? every : Infinity;
 
     if (plan.mode === 'intervals' && plan.workout) {
       this.steps = expandWorkout(plan.workout);
@@ -360,6 +365,8 @@ class RunSession {
       this.say(join(`Heart rate is ${h}.`, this.lines.hrTip || 'That is very high.'), true);
     }
 
+    this.checkHrUpdate(t);
+
     if (running && this.lines.encourage.length && t - this.lastMotivate > 240 && t - this.lastSpoke > 60 && this.dist > 200) {
       this.lastMotivate = t;
       this.say(pick(this.lines.encourage), false);
@@ -380,12 +387,40 @@ class RunSession {
             : diff > 0 ? `You're ${sayTime(diff)} ahead of target.`
             : join(`You're ${sayTime(-diff)} behind target.`, this.lines.behindTip));
         }
-        if (hr) msg += ` Heart rate ${hr}.`;
+        if (hr && this.hrDueWithSplit()) msg = join(msg, this.hrLine(hr));
         if (!this.flags.has('half') && Math.abs(this.nextSplit - p.goalMeters / 2) < 1) { this.flags.add('half'); msg = join(msg, this.lines.halfway); }
         this.say(msg, true);
       }
       this.lastSplitT = t; this.lastSplitD = this.nextSplit; this.splitHr = [];
       this.nextSplit += p.splitEvery;
+    }
+  }
+
+  /** True when heart rate should be read out with the split being announced now. */
+  private hrDueWithSplit() {
+    const p = this.plan!;
+    if (p.hrEvery === 'split') return true;
+    if (this.nextHrD > this.nextSplit) return false;
+    const every = Number(p.hrEvery.slice(1));
+    while (this.nextHrD <= this.nextSplit) this.nextHrD += every;
+    return true;
+  }
+
+  /** "Heart rate 152, steady." The word comes from how close the reading is to max heart rate. */
+  private hrLine(h: number) {
+    const f = h / this.plan!.maxHr;
+    const zone = f < 0.7 ? 'easy' : f < 0.8 ? 'steady' : f < 0.9 ? 'working hard' : 'very hard';
+    return `Heart rate ${h}, ${zone}.`;
+  }
+
+  private checkHrUpdate(t: number) {
+    const h = this.liveHr();
+    if (!h) return;
+    const every = Number(this.plan!.hrEvery.slice(1));
+    // A skipped line (coach busy talking) is tried again on the next tick.
+    if (t >= this.nextHrT && this.say(this.hrLine(h), false)) this.nextHrT = t + every;
+    if (this.dist >= this.nextHrD && this.say(this.hrLine(h), false)) {
+      this.nextHrD = (Math.floor(this.dist / every) + 1) * every;
     }
   }
 
@@ -446,6 +481,7 @@ class RunSession {
     if (prev && prev.kind === 'run') {
       const prevStep = this.steps[this.stepIdx - 1];
       msg += prevStep.measure === 'distance' ? `That rep took ${sayTime(prev.time)}. ` : `You covered ${sayDist(prev.distance)}. `;
+      if (prev.hr && this.plan!.hrEvery === 'split') msg += `${this.hrLine(prev.hr)} `;
     }
     const which = this.stepIdx === n - 1 ? 'Last one.' : `Interval ${this.stepIdx + 1} of ${n}.`;
     this.say(join(`${msg}${which} ${cap(stepSpoken(step))}.`, this.lines.cue[step.kind]), true);
@@ -495,10 +531,12 @@ class RunSession {
     }
   }
 
-  private say(text: string, important: boolean) {
+  /** Returns false when a less important line was skipped because the coach was already talking. */
+  private say(text: string, important: boolean): boolean {
+    if (this.plan?.voice && !speak(text, important)) return false;
     this.coachLine = text;
     this.lastSpoke = this.elapsed();
-    if (this.plan?.voice) speak(text, important);
+    return true;
   }
 
   private emit() {

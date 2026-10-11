@@ -4,14 +4,15 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Chip, Field, Screen, SectionLabel, Segmented, StepStrip, Title, ToggleRow } from '../../src/ui';
 import { useTheme } from '../../src/theme';
-import { loadSettings, loadWorkouts, saveSettings } from '../../src/storage';
+import { HR_OPTIONS, loadSettings, loadWorkouts, saveSettings } from '../../src/storage';
 import { Plan, RunMode, Settings, Workout } from '../../src/types';
 import { parsePace } from '../../src/format';
 import { estimateMinutes, summarize } from '../../src/intervals';
 import { session, SIM_SPEED } from '../../src/session';
 import { useHr } from '../../src/hooks';
 import { connectStrap, disconnectStrap, scanForStraps } from '../../src/heartRate';
-import { COACHES } from '../../src/coach';
+import { personaFor } from '../../src/coach';
+import { voiceFor } from '../../src/speech';
 
 const DISTANCES = [1, 3, 5, 10, 21.1];
 
@@ -48,6 +49,9 @@ export default function StartScreen() {
     if (s.targetPace.trim() && !(target && target >= 150 && target <= 1200)) { setError('Write target pace as minutes:seconds per km, for example 6:00.'); return; }
     if (s.mode === 'intervals' && !workout) { setError('Choose an interval workout first.'); return; }
     const maxHr = parseInt(s.maxHr, 10);
+    const persona = personaFor(s.coach);
+    setStarting(true);
+    const voice = await voiceFor(persona, s.voiceId, s.voiceRate);
     const plan: Plan = {
       mode: s.mode,
       goalMeters: s.mode === 'distance' ? goalKm * 1000 : 0,
@@ -57,11 +61,12 @@ export default function StartScreen() {
       voice: s.voice,
       maxHr: maxHr >= 120 && maxHr <= 230 ? maxHr : 190,
       simulate: s.simulate,
-      coach: s.coach,
-      voiceId: s.voiceId,
-      voiceRate: s.voiceRate,
+      coach: persona.style,
+      voiceId: voice.voiceId,
+      voiceRate: voice.rate,
+      voicePitch: voice.pitch,
+      hrEvery: s.hrEvery,
     };
-    setStarting(true);
     const res = await session.start(plan);
     setStarting(false);
     if (!res.ok) { setError(res.message ?? 'The run could not start.'); return; }
@@ -126,6 +131,12 @@ export default function StartScreen() {
             ? <Button small variant="secondary" label="Disconnect" onPress={disconnectStrap} />
             : <Button small variant="secondary" label={hr.scanning ? 'Searching…' : 'Connect'} onPress={scanForStraps} disabled={hr.scanning} />}
         </View>
+        <Text style={{ fontWeight: '600', color: t.text, marginTop: 14, marginBottom: 8 }}>Heart-rate updates</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {HR_OPTIONS.map((o) => (
+            <Chip key={o.value} small label={o.label} active={s.hrEvery === o.value} onPress={() => update({ hrEvery: o.value })} />
+          ))}
+        </View>
         {hr.found.map((d) => (
           <Pressable key={d.id} onPress={() => connectStrap(d.id)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, marginTop: 8, borderTopWidth: 1, borderTopColor: t.line }}>
             <Text style={{ flex: 1, fontSize: 16, color: t.text }}>{d.name}</Text>
@@ -138,8 +149,8 @@ export default function StartScreen() {
         <Pressable onPress={() => router.push('/coach')} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Ionicons name="chatbubble-ellipses" size={24} color={t.accent} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '700', fontSize: 16, color: t.text }}>Coach: {COACHES[s.coach].name}</Text>
-            <Text style={{ color: t.muted, fontSize: 14 }}>{COACHES[s.coach].blurb}</Text>
+            <Text style={{ fontWeight: '700', fontSize: 16, color: t.text }}>Coach: {personaFor(s.coach).name}</Text>
+            <Text style={{ color: t.muted, fontSize: 14 }}>{personaFor(s.coach).traits.join(', ')}</Text>
           </View>
           <Text style={{ color: t.accent, fontWeight: '700' }}>Change</Text>
         </Pressable>
@@ -148,8 +159,6 @@ export default function StartScreen() {
       <Card>
         <ToggleRow label="Voice coaching" hint="Pace, distance, splits and encouragement in your ear." value={s.voice} onChange={(voice) => update({ voice })} />
         <ToggleRow label="Practice mode" hint={`Simulated run at ${SIM_SPEED}× speed so you can test the coach indoors.`} value={s.simulate} onChange={(simulate) => update({ simulate })} />
-        <View style={{ height: 8 }} />
-        <Field label="Max heart rate (optional)" hint="Used for high heart-rate warnings. Defaults to 190." placeholder="190" value={s.maxHr} onChangeText={(maxHr) => update({ maxHr })} keyboardType="number-pad" />
       </Card>
 
       {error ? <Text style={{ color: t.danger, marginBottom: 12, fontWeight: '600' }}>{error}</Text> : null}
