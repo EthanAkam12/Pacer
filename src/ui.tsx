@@ -183,9 +183,7 @@ export function AuthHeader({ title, sub }: { title: string; sub: string }) {
   const t = useTheme();
   return (
     <View style={{ alignItems: 'center', marginTop: 24, marginBottom: 24 }}>
-      <View style={{ width: 76, height: 76, borderRadius: 20, backgroundColor: '#1B3BCF', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Image source={require('../assets/images/splash-icon.png')} style={{ width: 64, height: 64 }} />
-      </View>
+      <Image source={require('../assets/images/icon.png')} style={{ width: 88, height: 88, borderRadius: 20, marginBottom: 16 }} />
       <Text style={{ fontSize: 30, fontWeight: '800', color: t.text, letterSpacing: -0.5, textAlign: 'center' }}>{title}</Text>
       <Text style={{ fontSize: 16, color: t.muted, marginTop: 6, lineHeight: 22, textAlign: 'center' }}>{sub}</Text>
     </View>

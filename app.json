@@ -24,7 +24,8 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#1B3BCF"
+        "backgroundImage": "./assets/images/adaptive-bg.png",
+        "backgroundColor": "#021225"
       },
       "package": "com.ethanakam.pacer",
       "permissions": [
@@ -43,12 +44,12 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 180,
+          "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#1B3BCF",
+          "backgroundColor": "#021225",
           "dark": {
             "image": "./assets/images/splash-icon.png",
-            "backgroundColor": "#0F1F72"
+            "backgroundColor": "#021225"
           }
         }
       ],
