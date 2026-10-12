@@ -45,20 +45,20 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 | `app/_layout.tsx` | Root stack inside `AuthProvider`. `Stack.Protected` guards: app screens need a verified user with a username, the username screen shows when verified without one, `(auth)` screens show when signed out, verify shows when signed in but unverified. If Firebase isn't configured, sign-in is skipped. Imports `src/tracking` at startup to register the background location task. |
 | `app/(auth)/sign-in.tsx`, `sign-up.tsx`, `verify.tsx`, `forgot.tsx`, `username.tsx` | Sign in; create account (email, password at least 8 characters, confirm); "check your email" screen that polls for verification and can resend (60 s cooldown); password reset email; choose a username (required after verifying) |
 | `app/change-username.tsx`, `src/usernameForm.tsx` | Change username from Settings; the shared username form |
-| `app/(tabs)/settings.tsx` | Account (email, change password via reset email, sign out, delete account with password), leaderboards (username, show me on leaderboards), coach, max heart rate, heart-rate updates, about |
+| `app/(tabs)/settings.tsx` | Account (email, change password via reset email, sign out, delete account with password), leaderboards (username, show me on leaderboards), appearance (System/Light/Dark and 8 colour themes), coach and "lower music while the coach talks", max heart rate, heart-rate updates, about |
 | `app/(tabs)/_layout.tsx` | Bottom tabs: Run, Intervals, History, Ranks, Settings (Ionicons) |
 | `app/(tabs)/ranks.tsx` | Distance picker (Overall, Mile, 5K, 10K, Half, Marathon). Rank card (badge, best time, progress and target for the next division; Overall also shows all five distance badges), "how ranks work" ladder for that distance, leaderboard (Overall: this week, all time, top ranked; distance: fastest times with each runner's badge for that distance) with your own position |
 | `app/(tabs)/index.tsx` | Run setup: distance or intervals, distance chips, target pace, split frequency, heart-rate strap and heart-rate updates, coach card, voice and practice toggles, Start. Resolves the coach's voice before starting. |
 | `app/(tabs)/workouts.tsx` | Interval workout list, "Use for next run", Edit, Build new |
 | `app/(tabs)/history.tsx` | Last 7 days and all-time totals, personal bests, distance-per-week chart, average-pace trend chart, list of runs (practice runs are left out of totals, PBs and charts) |
-| `app/run.tsx` | Live run screen, always on a cobalt background: current pace, stats, progress lane or interval countdown, coach bubble, Pause/Resume, Finish |
+| `app/run.tsx` | Live run screen in the chosen theme (gradient background): smoothed current pace, stats, progress lane or interval countdown that glide between updates (Animated), pulsing live dot, coach bubble that fades in on each new line, Pause/Resume, Finish. Keeps the screen awake (expo-keep-awake). |
 | `app/run-detail/[id].tsx` | Run details: stats, route sketch (react-native-svg), best efforts with PB trophies, pace-per-split chart, interval results, splits with fastest highlighted, delete |
 | `app/coach.tsx` | Pick a named coach (shows traits, a sample line and the phone voice it will use), speaking speed, optional voice override, tip for downloading better voices. Tapping plays a sample. |
 | `app/workout/edit.tsx` | Workout builder: name, warm-up, steps (run/walk/rest, by time or distance), repeats, cool-down, preview strip |
 | `src/session.ts` | **Coaching engine.** A singleton `session` handles distance, pace, splits, intervals and everything the coach says. Includes practice-mode simulation. |
 | `src/tracking.ts` | GPS: background updates via TaskManager, with `watchPositionAsync` as the fallback |
 | `src/heartRate.ts` | BLE heart-rate strap (service 0x180D, characteristic 0x2A37). Loaded lazily so Expo Go doesn't crash. |
-| `src/speech.ts` | expo-speech wrapper. Important lines queue; others are skipped (and `speak` returns false) if the coach is already talking. Lists English voices, filters out Apple's novelty/robotic voices, works out gender and quality, and picks the best voice for a coach (`bestVoiceFor`, `voiceFor`). |
+| `src/speech.ts` | expo-speech wrapper. Ducks music around speech (`src/ducking.ts`) unless turned off. Voice listing gives up after 1.5 s so a silent speech engine can't block starting a run. Important lines queue; others are skipped (and `speak` returns false) if the coach is already talking. Lists English voices, filters out Apple's novelty/robotic voices, works out gender and quality, and picks the best voice for a coach (`bestVoiceFor`, `voiceFor`). |
 | `src/coach.ts` | Phrasebooks per style (friendly, tough, calm, cheeky, minimal) and the named coaches (`PERSONAS`: Laura, Dave, Maya, Jack, Sam) with traits, voice gender/accents, rate and pitch. `personaFor` also maps old style names. |
 | `src/firebase.ts` | Firebase app + Auth with AsyncStorage persistence. Config from `EXPO_PUBLIC_FIREBASE_*` or the values in the file; `authConfigured` is false until set. |
 | `src/auth.tsx` | `AuthProvider`/`useAuth` (incl. `username`, `setUsername`), unique usernames (Firestore `usernames/{lowercase}` → uid, saved as the account's displayName; falls back to no uniqueness check if Firestore isn't set up), sign up (sends verification email), sign in, resend, reset password, sign out, delete account (re-authenticates), plain-English error messages |
@@ -71,7 +71,8 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 | `src/storage.ts` | AsyncStorage: runs, workouts (seeded with presets) and settings |
 | `src/intervals.ts` | Presets, labels, spoken step names, time estimates |
 | `src/format.ts` | Pace, time and date formatting, spoken forms, parsing, haversine distance |
-| `src/theme.ts` | Light and dark palettes, kind colours, run-screen colours |
+| `src/theme.ts` | 8 colour themes (`THEMES`, default `ocean`): each defines dark bg/accent/walk and light bg/accent/walk; cards, lines, muted text, run-screen colours (`t.run`) and text-on-accent are mixed from those. Choice (`themeId`, `appearance`) lives in a small store (`setThemePrefs`, loaded from Settings in `app/_layout.tsx`); `useTheme()` re-renders on change. |
+| `src/ducking.ts` | Lowers other apps' audio while the coach talks: plays a silent looping sound (`assets/sounds/silence.wav`) through expo-audio with `interruptionMode: 'duckOthers'` while speech is queued, pauses it 600 ms after the last line |
 | `src/ui.tsx` | Shared components: Screen, Title, Card, Segmented, Chip, Button, Field, ToggleRow, Stat, StepStrip |
 | `src/types.ts` | Shared types |
 | `src/hooks.ts` | `useRunSnapshot`, `useHr` |
@@ -107,6 +108,7 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **Not yet tested on a real outdoor run:** GPS accuracy, speech while backgrounded, and battery use.
 - **Accounts:** live. Firebase project `pacer-82fc9` (Email/Password sign-in enabled); config is in `src/firebase.ts`. Not yet tested end to end on a phone. Runs are still stored only on the phone, not per account.
 - **Leaderboards:** code is done; Firestore must be created and `firestore.rules` published (`docs/LEADERBOARDS.md`). Entries are uploaded after each real run and when the Ranks tab opens. Times come from the phone, so a determined cheat could still post fake (but plausible) numbers. Usernames are unique but not filtered for bad words.
+- **Music ducking:** built on expo-audio's audio focus (Android) and duckOthers audio session (iOS); not yet tested with real music on a phone.
 - **Voices:** on-device text-to-speech only. More natural options would need a cloud voice service (paid) behind a server.
 - **Ideas:**
   - Apple Watch / Health Connect heart rate

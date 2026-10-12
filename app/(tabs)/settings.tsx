@@ -3,8 +3,8 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { Button, Card, Chip, Field, PasswordField, Screen, SectionLabel, Title, ToggleRow } from '../../src/ui';
-import { useTheme } from '../../src/theme';
+import { Button, Card, Chip, Field, PasswordField, Screen, SectionLabel, Segmented, Title, ToggleRow } from '../../src/ui';
+import { Appearance, setThemePrefs, swatch, THEMES, useTheme } from '../../src/theme';
 import { HR_OPTIONS, loadSettings, saveSettings } from '../../src/storage';
 import { Settings } from '../../src/types';
 import { personaFor } from '../../src/coach';
@@ -108,9 +108,49 @@ export default function SettingsScreen() {
         <ToggleRow label="Show me on leaderboards" hint="Turn off to remove your name, rank and times from the leaderboards." value={s.leaderboards} onChange={(leaderboards) => updateBoard({ leaderboards })} />
       </Card>
 
+      <SectionLabel>Appearance</SectionLabel>
+      <Card>
+        <Segmented<Appearance>
+          options={[{ label: 'System', value: 'system' }, { label: 'Light', value: 'light' }, { label: 'Dark', value: 'dark' }]}
+          value={s.appearance}
+          onChange={(appearance) => { setThemePrefs({ appearance }); update({ appearance }); }}
+        />
+        <Text style={{ fontWeight: '600', color: t.text, marginBottom: 10 }}>Colour theme</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {THEMES.map((th) => {
+            const active = s.themeId === th.id;
+            const d = swatch(th.id, true), l = swatch(th.id, false);
+            return (
+              <Pressable
+                key={th.id}
+                onPress={() => { setThemePrefs({ themeId: th.id }); update({ themeId: th.id }); }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={th.name}
+                style={{ width: '48%', flexGrow: 1, borderRadius: 14, borderWidth: active ? 2 : 1, borderColor: active ? t.accent : t.line, padding: 8 }}
+              >
+                <View style={{ flexDirection: 'row', height: 44, borderRadius: 9, overflow: 'hidden' }}>
+                  <View style={{ flex: 1, backgroundColor: d.bg, alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: d.accent }} />
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: l.bg, alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: l.accent }} />
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
+                  {active ? <Ionicons name="checkmark-circle" size={15} color={t.accent} /> : null}
+                  <Text style={{ color: t.text, fontWeight: active ? '800' : '600', fontSize: 13 }} numberOfLines={1}>{th.name}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Card>
+
       <SectionLabel>Coach</SectionLabel>
       <Card style={{ paddingVertical: 6 }}>
         <Row icon="chatbubble-ellipses-outline" label={persona.name} sub={persona.traits.join(', ')} onPress={() => router.push('/coach')} />
+        <ToggleRow label="Lower music while the coach talks" hint="Music and podcasts get quieter for each update, then come back." value={s.duckMusic} onChange={(duckMusic) => update({ duckMusic })} />
       </Card>
 
       <SectionLabel>Heart rate</SectionLabel>

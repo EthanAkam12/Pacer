@@ -1,17 +1,24 @@
 import '../src/tracking'; // registers the background location task at startup
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
-import { useTheme } from '../src/theme';
+import { setThemePrefs, useTheme } from '../src/theme';
+import { loadSettings } from '../src/storage';
 import { AuthProvider, useAuth } from '../src/auth';
 
 export default function RootLayout() {
+  useEffect(() => { loadSettings().then((s) => setThemePrefs({ themeId: s.themeId, appearance: s.appearance })); }, []);
   return (
     <AuthProvider>
-      <StatusBar style="auto" />
+      <ThemedStatusBar />
       <Routes />
     </AuthProvider>
   );
+}
+
+function ThemedStatusBar() {
+  return <StatusBar style={useTheme().dark ? 'light' : 'dark'} />;
 }
 
 function Routes() {

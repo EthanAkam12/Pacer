@@ -37,6 +37,7 @@ export interface Plan {
   voiceRate: number;
   voicePitch: number;
   hrEvery: HrEvery;
+  duckMusic: boolean;
 }
 
 export interface Split {
@@ -93,6 +94,11 @@ export interface Settings {
   hrEvery: HrEvery;
   /** Whether this runner appears on the global leaderboards. */
   leaderboards: boolean;
+  /** Colour theme id (see THEMES) and light/dark choice. */
+  themeId: string;
+  appearance: 'system' | 'light' | 'dark';
+  /** Lower music and podcasts while the coach talks. */
+  duckMusic: boolean;
 }
 
 export type Phase = 'idle' | 'running' | 'paused' | 'finishing' | 'finished';

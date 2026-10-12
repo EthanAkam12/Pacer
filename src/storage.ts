@@ -57,6 +57,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: 'distance', goalKm: '5', targetPace: '', splitEvery: 1000,
   voice: true, maxHr: '', simulate: false, workoutId: 'preset-beginner',
   coach: 'maya', voiceId: null, voiceRate: 1, hrEvery: 'split', leaderboards: true,
+  themeId: 'ocean', appearance: 'system', duckMusic: true,
 };
 export const HR_OPTIONS: { label: string; value: HrEvery }[] = [
   { label: 'Off', value: 'off' }, { label: 'Each split', value: 'split' },

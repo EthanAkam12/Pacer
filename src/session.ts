@@ -96,7 +96,7 @@ class RunSession {
     this.fresh();
     this.plan = plan;
     this.lines = COACHES[plan.coach] ?? COACHES.friendly;
-    configureSpeech({ voiceId: plan.voiceId, rate: plan.voiceRate, pitch: plan.voicePitch });
+    configureSpeech({ voiceId: plan.voiceId, rate: plan.voiceRate, pitch: plan.voicePitch, duckMusic: plan.duckMusic });
 
     if (!plan.simulate) {
       const res = await startTracking((locs) => this.onLocations(locs));

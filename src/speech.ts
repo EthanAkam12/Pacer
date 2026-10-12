@@ -1,14 +1,22 @@
 import * as Speech from 'expo-speech';
 import type { Persona } from './coach';
+import { duck, unduck } from './ducking';
 
 let busy = false;
-const done = () => { busy = false; };
+let queued = 0; // lines handed to the speech engine that haven't finished yet
+let duckMusic = true;
+const done = () => {
+  busy = false;
+  queued = Math.max(0, queued - 1);
+  if (!queued) unduck();
+};
 let current = { voiceId: undefined as string | undefined, rate: 1, pitch: 1 };
 
 export interface VoiceSettings { voiceId: string | null; rate: number; pitch: number }
 
-export function configureSpeech(v: VoiceSettings) {
+export function configureSpeech(v: VoiceSettings & { duckMusic?: boolean }) {
   current = { voiceId: v.voiceId ?? undefined, rate: v.rate, pitch: v.pitch };
+  duckMusic = v.duckMusic ?? true;
 }
 
 const opts = (v: { voiceId?: string; rate: number; pitch: number }): Speech.SpeechOptions => ({
@@ -23,6 +31,8 @@ export function speak(text: string, important: boolean): boolean {
   if (!text.trim()) return true;
   if (busy && !important) return false;
   busy = true;
+  queued++;
+  if (duckMusic) duck();
   Speech.speak(text, { ...opts(current), onDone: done, onStopped: done, onError: done });
   return true;
 }
@@ -77,12 +87,18 @@ export const accentName = (language: string) => REGION[language.split('-')[1]] ?
 let cache: VoiceOption[] | null = null;
 
 /** Natural-sounding English voices on this phone, best quality first. Android can take a moment to list them. */
+/** Some speech engines never answer when asked for their voices, so give up after a moment. */
+const listVoices = () => Promise.race([
+  Speech.getAvailableVoicesAsync().catch(() => [] as Speech.Voice[]),
+  new Promise<Speech.Voice[]>((r) => setTimeout(() => r([]), 1500)),
+]);
+
 export async function englishVoices(): Promise<VoiceOption[]> {
   if (cache?.length) return cache;
-  let list = await Speech.getAvailableVoicesAsync().catch(() => []);
+  let list = await listVoices();
   if (!list.length) {
     await new Promise((r) => setTimeout(r, 800));
-    list = await Speech.getAvailableVoicesAsync().catch(() => []);
+    list = await listVoices();
   }
   const seen = new Set<string>();
   cache = list

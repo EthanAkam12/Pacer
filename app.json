@@ -71,7 +71,8 @@
           ],
           "bluetoothAlwaysPermission": "Pacer connects to your heart-rate strap."
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

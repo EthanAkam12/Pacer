@@ -66,6 +66,7 @@ export default function StartScreen() {
       voiceRate: voice.rate,
       voicePitch: voice.pitch,
       hrEvery: s.hrEvery,
+      duckMusic: s.duckMusic,
     };
     const res = await session.start(plan);
     setStarting(false);
