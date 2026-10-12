@@ -12,13 +12,13 @@ const getReactNativePersistence = (FirebaseAuth as unknown as { getReactNativePe
  * EXPO_PUBLIC_FIREBASE_* environment variables override them if set.
  */
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? '',
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ?? '',
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? '',
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '',
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? 'AIzaSyBvTlorDZisRm3Vx5k7ZlyjOuNOkqP4Xpk',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ?? 'pacer-82fc9.firebaseapp.com',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? 'pacer-82fc9',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '1:322159393147:web:1b99628634b7f5a0a2a5de',
 };
 
-/** False until the config above is filled in. The app then skips sign-in so it can still be tested. */
+/** False if the config above is empty. The app then skips sign-in so it can still be tested. */
 export const authConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 let auth: Auth | null = null;

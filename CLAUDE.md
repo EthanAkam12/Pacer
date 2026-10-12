@@ -98,7 +98,7 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **Expo Go limits:** no background GPS (the screen must stay on), no heart-rate straps, and Expo Go shows its own icon and splash. All of these need a development build. `eas.json` is set up, and `docs/DEV-BUILD.md` has step-by-step instructions (EAS cloud build, no Android Studio). Bundle ID is `com.ethanakam.pacer`.
 - **App icon and splash:** yellow speech bubble with two cobalt chevrons on cobalt (`assets/images/`). Changing them needs a new development build.
 - **Not yet tested on a real outdoor run:** GPS accuracy, speech while backgrounded, and battery use.
-- **Accounts:** code is done, but the Firebase project isn't set up yet, so sign-in is skipped. `docs/ACCOUNTS.md` has the steps; Ethan sends the config values and they go in `src/firebase.ts`. Runs are still stored only on the phone, not per account.
+- **Accounts:** live. Firebase project `pacer-82fc9` (Email/Password sign-in enabled); config is in `src/firebase.ts`. Not yet tested end to end on a phone. Runs are still stored only on the phone, not per account.
 - **Voices:** on-device text-to-speech only. More natural options would need a cloud voice service (paid) behind a server.
 - **Ideas:**
   - Apple Watch / Health Connect heart rate
