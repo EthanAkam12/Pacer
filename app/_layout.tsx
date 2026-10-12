@@ -16,11 +16,11 @@ export default function RootLayout() {
 
 function Routes() {
   const t = useTheme();
-  const { loading, configured, user, verified } = useAuth();
+  const { loading, configured, user, verified, username } = useAuth();
   if (loading) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
   // Until Firebase is set up (configured is false), sign-in is skipped so the app can still be tested.
-  const inApp = !configured || (!!user && verified);
+  const inApp = !configured || (!!user && verified && !!username);
   return (
     <Stack
       screenOptions={{
@@ -37,6 +37,7 @@ function Routes() {
         <Stack.Screen name="run-detail/[id]" options={{ headerShown: true, title: 'Run' }} />
         <Stack.Screen name="coach" options={{ headerShown: true, title: 'Coach', presentation: 'modal' }} />
         <Stack.Screen name="workout/edit" options={{ headerShown: true, title: 'Interval workout', presentation: 'modal' }} />
+        <Stack.Screen name="change-username" options={{ headerShown: true, title: 'Username', presentation: 'modal' }} />
       </Stack.Protected>
       <Stack.Protected guard={configured && !user}>
         <Stack.Screen name="(auth)/sign-in" />
@@ -45,6 +46,9 @@ function Routes() {
       </Stack.Protected>
       <Stack.Protected guard={configured && !!user && !verified}>
         <Stack.Screen name="(auth)/verify" />
+      </Stack.Protected>
+      <Stack.Protected guard={configured && !!user && verified && !username}>
+        <Stack.Screen name="(auth)/username" />
       </Stack.Protected>
     </Stack>
   );

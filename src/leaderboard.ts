@@ -3,8 +3,8 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { loadRuns, loadSettings } from './storage';
-import { personalBests, PB_DISTANCES } from './records';
-import { rankFor } from './ranks';
+import { personalBests } from './records';
+import { RANKED, rankFor } from './ranks';
 import { RunRecord } from './types';
 
 /**
@@ -13,7 +13,8 @@ import { RunRecord } from './types';
  * times are shared, never the email. Everything is worked out from the runs saved on the phone.
  */
 
-export type Board = 'week' | 'total' | `best${string}`;
+/** week/total: most km. rank: best overall rank. best1609 etc: fastest time at that distance. */
+export type Board = 'week' | 'total' | 'rank' | `best${string}`;
 
 export interface Row { uid: string; name: string; tier: string; value: number; position: number }
 
@@ -47,16 +48,16 @@ function summary(runs: RunRecord[]) {
   };
 }
 
-const ready = () => (db && auth?.currentUser?.emailVerified ? { db, uid: auth.currentUser.uid } : null);
+const ready = () => (db && auth?.currentUser?.emailVerified ? { db, uid: auth.currentUser.uid, name: auth.currentUser.displayName ?? '' } : null);
 
 /** Uploads this runner's latest numbers, or removes them if they've opted out. Safe to call often. */
 export async function syncMyEntry(): Promise<void> {
   const r = ready();
   if (!r) return;
   const [s, runs] = await Promise.all([loadSettings(), loadRuns()]);
-  if (!s.leaderboards || !s.runnerName.trim()) { await removeMyEntry(); return; }
+  if (!s.leaderboards || !r.name) { await removeMyEntry(); return; }
   const { rank, totalKm, weekKm, bests } = summary(runs);
-  const name = s.runnerName.trim();
+  const name = r.name;
   await setDoc(doc(r.db, 'profiles', r.uid), {
     name, tier: rank.id, totalKm, ...bests, ...(rank.score ? { rankScore: rank.score } : {}), updatedAt: serverTimestamp(),
   });
@@ -80,8 +81,8 @@ export async function fetchBoard(board: Board): Promise<{ rows: Row[]; me: Row |
   if (!r) throw new Error('signed-out');
   const week = board === 'week';
   const col = week ? collection(r.db, 'weeks', weekKey(), 'entries') : collection(r.db, 'profiles');
-  const field = week ? 'km' : board === 'total' ? 'totalKm' : board;
-  const fastest = board.startsWith('best');
+  const field = week ? 'km' : board === 'total' ? 'totalKm' : board === 'rank' ? 'rankScore' : board;
+  const fastest = board.startsWith('best') || board === 'rank';
   const order: QueryConstraint = orderBy(field, fastest ? 'asc' : 'desc');
 
   const snap = await getDocs(query(col, order, limit(TOP)));
@@ -97,17 +98,18 @@ export async function fetchBoard(board: Board): Promise<{ rows: Row[]; me: Row |
   let me: Row | null = null;
   if (!rows.some((x) => x.uid === r.uid)) {
     const mine = summary(await loadRuns());
-    const value = week ? mine.weekKm : board === 'total' ? mine.totalKm : mine.bests[board];
+    const value = week ? mine.weekKm : board === 'total' ? mine.totalKm : board === 'rank' ? mine.rank.score : mine.bests[board];
     const s = await loadSettings();
-    if (value && s.leaderboards && s.runnerName.trim()) {
+    if (value && s.leaderboards && r.name) {
       const ahead = await getCountFromServer(query(col, where(field, fastest ? '<' : '>', value)));
-      me = { uid: r.uid, name: s.runnerName.trim(), tier: mine.rank.id, value, position: ahead.data().count + 1 };
+      me = { uid: r.uid, name: r.name, tier: mine.rank.id, value, position: ahead.data().count + 1 };
     }
   }
   return { rows, me };
 }
 
-export const FASTEST_BOARDS = PB_DISTANCES.map((d) => ({ board: `best${d.key}` as Board, label: d.label === 'Half marathon' ? 'Half' : d.label }));
+export const distanceBoard = (key: string) => `best${key}` as Board;
+export const RANKED_KEYS = RANKED.map((d) => d.key);
 
 /** True for errors that mean the leaderboard database hasn't been switched on or its rules are missing. */
 export const notSetUp = (e: unknown) => ['permission-denied', 'failed-precondition', 'not-found'].includes((e as { code?: string })?.code ?? '');

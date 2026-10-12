@@ -40,6 +40,17 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
+    // One document per username (lowercase), holding the owner's uid. A name can be claimed
+    // only if free (there's no update rule) and released only by its owner.
+    match /usernames/{name} {
+      allow read: if verified();
+      allow create: if verified()
+        && name.matches('^[a-z0-9_.]{3,20}$')
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if verified() && resource.data.uid == request.auth.uid;
+    }
+
     match /weeks/{week}/entries/{uid} {
       allow read: if verified();
       allow delete: if isMe(uid);

@@ -22,6 +22,6 @@ The rules stop people changing anyone else's entry or posting impossible times.
 
 ## 3. Try it
 
-Open the **Ranks** tab in the app, choose a runner name and tap **Join**. Your entry appears on the boards after your next real run (practice runs don't count).
+Everyone picks a username after creating their account; that's their name on the leaderboards. Open the **Ranks** tab: your entry appears on the boards after your next real run (practice runs don't count).
 
 You can see everyone's entries in the Firebase console under **Firestore Database > Data**.

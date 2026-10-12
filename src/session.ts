@@ -7,7 +7,7 @@ import { hrStore } from './heartRate';
 import { loadRuns, saveRun } from './storage';
 import { COACHES, CoachLines } from './coach';
 import { bestEfforts, newPbs, PB_DISTANCES } from './records';
-import { rankFor } from './ranks';
+import { allRanks, RANKED, rankFor } from './ranks';
 import { startTracking, stopTracking } from './tracking';
 
 /** Practice mode runs the clock this many times faster than real time. */
@@ -201,9 +201,15 @@ class RunSession {
       };
       try { await saveRun(record); recordId = record.id; } catch { recordId = null; }
       if (earlier && recordId) {
-        const before = rankFor(earlier), after = rankFor([...earlier, record]);
+        // Announce an overall rank-up, or else the longest distance whose rank went up.
+        const all = [...earlier, record];
+        const before = rankFor(earlier), after = rankFor(all);
+        const was = allRanks(earlier), now = allRanks(all);
+        const up = [...RANKED].reverse().find((d) => now[d.key].level > was[d.key].level);
         if (after.level > before.level) {
-          this.say(before.tier ? `You've ranked up to ${after.spoken}!` : `You've earned your first rank: ${after.spoken}!`, true);
+          this.say(before.step ? `You've ranked up to ${after.step!.spoken} overall!` : `You've earned your first rank: ${after.step!.spoken}!`, true);
+        } else if (up) {
+          this.say(`Your ${up.long} rank is now ${now[up.key].step!.spoken}!`, true);
         }
       }
     }

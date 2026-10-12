@@ -91,8 +91,6 @@ export interface Settings {
   voiceId: string | null;
   voiceRate: number;
   hrEvery: HrEvery;
-  /** Public name on leaderboards. Empty until chosen. */
-  runnerName: string;
   /** Whether this runner appears on the global leaderboards. */
   leaderboards: boolean;
 }

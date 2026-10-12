@@ -14,18 +14,16 @@ import { syncMyEntry } from '../../src/leaderboard';
 export default function SettingsScreen() {
   const t = useTheme();
   const router = useRouter();
-  const { configured, user } = useAuth();
+  const { configured, user, username } = useAuth();
   const [s, setS] = useState<Settings | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [name, setName] = useState('');
-  const [nameMsg, setNameMsg] = useState('');
 
   useFocusEffect(useCallback(() => {
     let alive = true;
-    loadSettings().then((st) => { if (alive) { setS(st); setName(st.runnerName); } });
+    loadSettings().then((st) => { if (alive) setS(st); });
     return () => { alive = false; };
   }, []));
 
@@ -40,12 +38,7 @@ export default function SettingsScreen() {
     await update(patch);
     await syncMyEntry().catch(() => {});
   };
-  async function saveName() {
-    const n = name.trim();
-    if (n && !/^[\p{L}\p{N} ._'-]{2,20}$/u.test(n)) { setNameMsg('Use 2 to 20 letters, numbers or spaces.'); return; }
-    await updateBoard({ runnerName: n });
-    setNameMsg('Saved.');
-  }
+
   const persona = personaFor(s.coach);
 
   async function changePassword() {
@@ -111,9 +104,7 @@ export default function SettingsScreen() {
 
       <SectionLabel>Leaderboards</SectionLabel>
       <Card>
-        <Field label="Runner name" hint="Shown to other runners on the leaderboards." value={name} onChangeText={(v) => { setName(v); setNameMsg(''); }} placeholder="e.g. Ethan R" maxLength={20} autoCorrect={false} onSubmitEditing={saveName} />
-        {nameMsg ? <Text style={{ color: nameMsg === 'Saved.' ? t.walk : t.danger, marginBottom: 8, fontWeight: '600' }}>{nameMsg}</Text> : null}
-        {name.trim() !== s.runnerName ? <Button small label="Save name" onPress={saveName} style={{ alignSelf: 'flex-start', marginBottom: 8 }} /> : null}
+        {configured && user ? <Row icon="at" label={username ?? 'Choose a username'} sub="Username: tap to change" onPress={() => router.push('/change-username')} /> : null}
         <ToggleRow label="Show me on leaderboards" hint="Turn off to remove your name, rank and times from the leaderboards." value={s.leaderboards} onChange={(leaderboards) => updateBoard({ leaderboards })} />
       </Card>
 
