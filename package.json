@@ -41,6 +41,7 @@
     "start": "expo start",
     "go": "expo start --go --tunnel",
     "dev": "expo start --dev-client --tunnel",
+    "update": "git fetch origin && git reset --hard origin/claude/transfer-chat-to-code-wcjs0u && npm install",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

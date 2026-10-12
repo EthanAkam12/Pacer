@@ -22,6 +22,7 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
   `npm run go` is `npx expo start --go --tunnel` (Expo Go). `npm run dev` is `npx expo start --dev-client --tunnel` (development build, see `docs/DEV-BUILD.md`).
 
   Then scan the QR code with Expo Go on the phone. Add `-c` to clear the cache after big changes.
+- **Getting new code:** `npm run update` (fetch, hard-reset to the GitHub branch, `npm install`). Plain `git pull` failed once because `npm install` on Ethan's PC (newer npm) changes `package-lock.json`. After updating, fully close Expo Go and scan the QR code fresh rather than reopening from "Recently opened".
 - **Why `--go`:** `expo-dev-client` is installed, so without `--go` the QR code targets a development build and Expo Go closes immediately.
 - **Why `--tunnel`:** a normal LAN connection hung on the loading screen, probably because of Windows Firewall or the router. `@expo/ngrok` is installed and handles the tunnel.
 

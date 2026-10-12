@@ -34,9 +34,8 @@ Stop the server (**Ctrl + C**), then in Command Prompt:
 
 ```
 cd C:\Users\Ethan\Desktop\pacer-app
-git pull
-npm install
-npm run go
+npm run update
+npm run go -- -c
 ```
 
-`git pull` downloads the new code. `npm install` adds any new libraries (it's quick when nothing changed).
+`npm run update` downloads the new code, makes your copy match GitHub exactly (throwing away any changes on your PC) and installs any new libraries. Then fully close Expo Go on your phone and scan the QR code fresh.
