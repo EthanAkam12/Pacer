@@ -56,7 +56,7 @@ export async function deleteWorkout(id: string) {
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'distance', goalKm: '5', targetPace: '', splitEvery: 1000,
   voice: true, maxHr: '', simulate: false, workoutId: 'preset-beginner',
-  coach: 'maya', voiceId: null, voiceRate: 1, hrEvery: 'split',
+  coach: 'maya', voiceId: null, voiceRate: 1, hrEvery: 'split', runnerName: '', leaderboards: true,
 };
 export const HR_OPTIONS: { label: string; value: HrEvery }[] = [
   { label: 'Off', value: 'off' }, { label: 'Each split', value: 'split' },

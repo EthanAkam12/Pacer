@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import * as FirebaseAuth from 'firebase/auth';
 import { Auth, getAuth, initializeAuth, Persistence } from 'firebase/auth';
+import { Firestore, getFirestore } from 'firebase/firestore';
 
 // Only the React Native build of Firebase Auth has this, and Firebase's type definitions leave it out.
 const getReactNativePersistence = (FirebaseAuth as unknown as { getReactNativePersistence?: (s: typeof AsyncStorage) => Persistence }).getReactNativePersistence;
@@ -22,8 +23,10 @@ const firebaseConfig = {
 export const authConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 let auth: Auth | null = null;
+let db: Firestore | null = null;
 if (authConfigured) {
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  db = getFirestore(app);
   try {
     // Keeps people signed in between app launches. Web (no React Native build) uses Firebase's own default.
     auth = getReactNativePersistence ? initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) }) : getAuth(app);
@@ -31,4 +34,4 @@ if (authConfigured) {
     auth = getAuth(app); // already initialised (fast refresh)
   }
 }
-export { auth };
+export { auth, db };

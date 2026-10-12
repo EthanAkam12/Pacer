@@ -8,6 +8,7 @@ import { useRunSnapshot } from '../src/hooks';
 import { runScreen as C } from '../src/theme';
 import { fmtKm, fmtPace, fmtTime } from '../src/format';
 import { KIND_NAME, stepLabel } from '../src/intervals';
+import { syncMyEntry } from '../src/leaderboard';
 
 export default function RunScreen() {
   const s = useRunSnapshot();
@@ -22,7 +23,10 @@ export default function RunScreen() {
   }, []);
 
   useEffect(() => {
-    if (s.phase === 'finished') router.replace(s.recordId ? `/run-detail/${s.recordId}` : '/');
+    if (s.phase === 'finished') {
+      if (s.recordId && !s.simulated) syncMyEntry().catch(() => {});
+      router.replace(s.recordId ? `/run-detail/${s.recordId}` : '/');
+    }
     else if (s.phase === 'idle') router.replace('/');
   }, [s.phase, s.recordId]);
 

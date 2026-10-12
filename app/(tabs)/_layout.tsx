@@ -17,6 +17,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Run', tabBarIcon: ({ color, size }) => <Ionicons name="footsteps" color={color} size={size} /> }} />
       <Tabs.Screen name="workouts" options={{ title: 'Intervals', tabBarIcon: ({ color, size }) => <Ionicons name="timer-outline" color={color} size={size} /> }} />
       <Tabs.Screen name="history" options={{ title: 'History', tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" color={color} size={size} /> }} />
+      <Tabs.Screen name="ranks" options={{ title: 'Ranks', tabBarIcon: ({ color, size }) => <Ionicons name="trophy-outline" color={color} size={size} /> }} />
       <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} /> }} />
     </Tabs>
   );

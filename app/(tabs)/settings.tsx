@@ -3,12 +3,13 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { Button, Card, Chip, Field, PasswordField, Screen, SectionLabel, Title } from '../../src/ui';
+import { Button, Card, Chip, Field, PasswordField, Screen, SectionLabel, Title, ToggleRow } from '../../src/ui';
 import { useTheme } from '../../src/theme';
 import { HR_OPTIONS, loadSettings, saveSettings } from '../../src/storage';
 import { Settings } from '../../src/types';
 import { personaFor } from '../../src/coach';
 import { authMessage, deleteAccount, resetPassword, signOut, useAuth } from '../../src/auth';
+import { syncMyEntry } from '../../src/leaderboard';
 
 export default function SettingsScreen() {
   const t = useTheme();
@@ -19,10 +20,12 @@ export default function SettingsScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [name, setName] = useState('');
+  const [nameMsg, setNameMsg] = useState('');
 
   useFocusEffect(useCallback(() => {
     let alive = true;
-    loadSettings().then((st) => { if (alive) setS(st); });
+    loadSettings().then((st) => { if (alive) { setS(st); setName(st.runnerName); } });
     return () => { alive = false; };
   }, []));
 
@@ -30,8 +33,19 @@ export default function SettingsScreen() {
   const update = (patch: Partial<Settings>) => {
     const next = { ...s, ...patch };
     setS(next);
-    saveSettings(next);
+    return saveSettings(next);
   };
+  /** Saves a leaderboard change and updates (or removes) this runner's public entry. */
+  const updateBoard = async (patch: Partial<Settings>) => {
+    await update(patch);
+    await syncMyEntry().catch(() => {});
+  };
+  async function saveName() {
+    const n = name.trim();
+    if (n && !/^[\p{L}\p{N} ._'-]{2,20}$/u.test(n)) { setNameMsg('Use 2 to 20 letters, numbers or spaces.'); return; }
+    await updateBoard({ runnerName: n });
+    setNameMsg('Saved.');
+  }
   const persona = personaFor(s.coach);
 
   async function changePassword() {
@@ -94,6 +108,14 @@ export default function SettingsScreen() {
           <Text style={{ color: t.muted, lineHeight: 20 }}>Sign-in turns on once the app is connected to Firebase. See docs/ACCOUNTS.md.</Text>
         </Card>
       )}
+
+      <SectionLabel>Leaderboards</SectionLabel>
+      <Card>
+        <Field label="Runner name" hint="Shown to other runners on the leaderboards." value={name} onChangeText={(v) => { setName(v); setNameMsg(''); }} placeholder="e.g. Ethan R" maxLength={20} autoCorrect={false} onSubmitEditing={saveName} />
+        {nameMsg ? <Text style={{ color: nameMsg === 'Saved.' ? t.walk : t.danger, marginBottom: 8, fontWeight: '600' }}>{nameMsg}</Text> : null}
+        {name.trim() !== s.runnerName ? <Button small label="Save name" onPress={saveName} style={{ alignSelf: 'flex-start', marginBottom: 8 }} /> : null}
+        <ToggleRow label="Show me on leaderboards" hint="Turn off to remove your name, rank and times from the leaderboards." value={s.leaderboards} onChange={(leaderboards) => updateBoard({ leaderboards })} />
+      </Card>
 
       <SectionLabel>Coach</SectionLabel>
       <Card style={{ paddingVertical: 6 }}>

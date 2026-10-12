@@ -4,6 +4,7 @@ import {
   sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut as fbSignOut, User,
 } from 'firebase/auth';
 import { auth, authConfigured } from './firebase';
+import { removeMyEntry } from './leaderboard';
 
 interface AuthState {
   loading: boolean;
@@ -64,6 +65,7 @@ export const signOut = () => fbSignOut(need());
 export async function deleteAccount(password: string) {
   const u = need().currentUser!;
   await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email!, password));
+  await removeMyEntry().catch(() => {});
   await deleteUser(u);
 }
 

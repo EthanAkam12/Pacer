@@ -7,6 +7,7 @@ import { hrStore } from './heartRate';
 import { loadRuns, saveRun } from './storage';
 import { COACHES, CoachLines } from './coach';
 import { bestEfforts, newPbs, PB_DISTANCES } from './records';
+import { rankFor } from './ranks';
 import { startTracking, stopTracking } from './tracking';
 
 /** Practice mode runs the clock this many times faster than real time. */
@@ -199,6 +200,12 @@ class RunSession {
         pbs,
       };
       try { await saveRun(record); recordId = record.id; } catch { recordId = null; }
+      if (earlier && recordId) {
+        const before = rankFor(earlier), after = rankFor([...earlier, record]);
+        if (after.level > before.level) {
+          this.say(before.tier ? `You've ranked up to ${after.spoken}!` : `You've earned your first rank: ${after.spoken}!`, true);
+        }
+      }
     }
     this.recordId = recordId;
     this.phase = 'finished';

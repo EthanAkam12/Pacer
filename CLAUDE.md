@@ -44,8 +44,9 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 |---|---|
 | `app/_layout.tsx` | Root stack inside `AuthProvider`. `Stack.Protected` guards: app screens need a verified user, `(auth)` screens show when signed out, verify shows when signed in but unverified. If Firebase isn't configured, sign-in is skipped. Imports `src/tracking` at startup to register the background location task. |
 | `app/(auth)/sign-in.tsx`, `sign-up.tsx`, `verify.tsx`, `forgot.tsx` | Sign in; create account (email, password at least 8 characters, confirm); "check your email" screen that polls for verification and can resend (60 s cooldown); password reset email |
-| `app/(tabs)/settings.tsx` | Account (email, change password via reset email, sign out, delete account with password), coach, max heart rate, heart-rate updates, about |
-| `app/(tabs)/_layout.tsx` | Bottom tabs: Run, Intervals, History, Settings (Ionicons) |
+| `app/(tabs)/settings.tsx` | Account (email, change password via reset email, sign out, delete account with password), leaderboards (runner name, show me on leaderboards), coach, max heart rate, heart-rate updates, about |
+| `app/(tabs)/_layout.tsx` | Bottom tabs: Run, Intervals, History, Ranks, Settings (Ionicons) |
+| `app/(tabs)/ranks.tsx` | Your rank (badge, where it came from, progress and target time for the next division), "how ranks work" ladder, leaderboards (this week, all time, fastest 1 km to marathon) with your own position, join with a runner name |
 | `app/(tabs)/index.tsx` | Run setup: distance or intervals, distance chips, target pace, split frequency, heart-rate strap and heart-rate updates, coach card, voice and practice toggles, Start. Resolves the coach's voice before starting. |
 | `app/(tabs)/workouts.tsx` | Interval workout list, "Use for next run", Edit, Build new |
 | `app/(tabs)/history.tsx` | Last 7 days and all-time totals, personal bests, distance-per-week chart, average-pace trend chart, list of runs (practice runs are left out of totals, PBs and charts) |
@@ -60,6 +61,10 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 | `src/coach.ts` | Phrasebooks per style (friendly, tough, calm, cheeky, minimal) and the named coaches (`PERSONAS`: Laura, Dave, Maya, Jack, Sam) with traits, voice gender/accents, rate and pitch. `personaFor` also maps old style names. |
 | `src/firebase.ts` | Firebase app + Auth with AsyncStorage persistence. Config from `EXPO_PUBLIC_FIREBASE_*` or the values in the file; `authConfigured` is false until set. |
 | `src/auth.tsx` | `AuthProvider`/`useAuth`, sign up (sends verification email), sign in, resend, reset password, sign out, delete account (re-authenticates), plain-English error messages |
+| `src/ranks.ts` | Speed-based ranks: Bronze, Silver, Gold, Emerald, Platinum, Diamond (each III/II/I) and Elite, from the best 5 km equivalent (Riegel, exponent 1.06) of efforts of 1 mile or more in the last 90 days. `rankFor`, `ladder` |
+| `src/badge.tsx` | `RankBadge`: SVG shield in the tier's colours with the division numeral |
+| `src/leaderboard.ts` | Firestore leaderboards: `profiles/{uid}` (name, tier, rankScore, totalKm, best1000…best42195) and `weeks/{monday}/entries/{uid}` (name, tier, km). `syncMyEntry` uploads from local runs (practice excluded), `fetchBoard` returns the top 50 plus your own position (count query), `removeMyEntry` |
+| `firestore.rules` | Firestore security rules (own entry only, verified email, field and plausibility checks). Pasted into the Firebase console by hand. |
 | `src/records.ts` | Best efforts (fastest 1 km, 1 mile, 5 km, 10 km, half, marathon within any run), personal bests, new-PB detection |
 | `src/charts.tsx` | Bar and line charts (react-native-svg). Tap or drag to read a value. |
 | `src/storage.ts` | AsyncStorage: runs, workouts (seeded with presets) and settings |
@@ -91,6 +96,7 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **Pace wording:** said the way runners say it, e.g. "5 30 per kilometre", "5 oh 5 per kilometre".
 - **Heart-rate updates:** `plan.hrEvery` is `off`, `split` (with split messages, and with rep results in intervals), `t30`/`t60`/`t120`/`t300` (seconds) or `d500`/`d1000` (metres; merged into the split message when they land together). Lines say how hard it is ("Heart rate 152, steady") from the share of max HR. The high heart-rate warning always runs.
 - **Personal bests:** the session keeps a distance-over-time track for the whole run. At the finish it works out best efforts, compares them with earlier runs (practice runs only compete with practice runs) and announces the longest new PB.
+- **Rank-up:** at the finish, the rank before and after the run is compared (practice runs against practice runs) and the coach announces a rank-up or a first rank.
 - **Saving:** runs of 30 seconds or more, or 50 m or more, are saved with a route thinned to about 400 points, plus `bests` and `pbs`.
 
 ## Known limitations and next steps
@@ -99,6 +105,7 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **App icon and splash:** Ethan's artwork: runner silhouette on blue hills with "PACER" (`assets/images/icon.png`, cropped from a 364 px original and upscaled, so a larger original would be sharper). Android uses it at 58% on an edge-extended background (`adaptive-icon.png` + `adaptive-bg.png`) so the circle mask doesn't cut the text. Splash is the rounded artwork on #021225. Changing them needs a new development build.
 - **Not yet tested on a real outdoor run:** GPS accuracy, speech while backgrounded, and battery use.
 - **Accounts:** live. Firebase project `pacer-82fc9` (Email/Password sign-in enabled); config is in `src/firebase.ts`. Not yet tested end to end on a phone. Runs are still stored only on the phone, not per account.
+- **Leaderboards:** code is done; Firestore must be created and `firestore.rules` published (`docs/LEADERBOARDS.md`). Entries are uploaded after each real run and when the Ranks tab opens. Times come from the phone, so a determined cheat could still post fake (but plausible) numbers. Runner names aren't unique or filtered.
 - **Voices:** on-device text-to-speech only. More natural options would need a cloud voice service (paid) behind a server.
 - **Ideas:**
   - Apple Watch / Health Connect heart rate
