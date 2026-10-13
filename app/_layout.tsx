@@ -2,7 +2,7 @@ import '../src/tracking'; // registers the background location task at startup
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { setThemePrefs, useTheme } from '../src/theme';
 import { loadSettings } from '../src/storage';
 import { AuthProvider, useAuth } from '../src/auth';
@@ -24,7 +24,7 @@ function ThemedStatusBar() {
 function Routes() {
   const t = useTheme();
   const { loading, configured, user, verified, username } = useAuth();
-  if (loading) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
+  if (loading) return <View style={{ flex: 1, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={t.accent} size="large" /></View>;
 
   // Until Firebase is set up (configured is false), sign-in is skipped so the app can still be tested.
   const inApp = !configured || (!!user && verified && !!username);

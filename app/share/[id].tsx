@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { captureRef } from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
 import Svg, { Circle, Defs, LinearGradient, Polyline, Rect, Stop } from 'react-native-svg';
 import { Button, Screen } from '../../src/ui';
 import { mix, useTheme } from '../../src/theme';
@@ -34,11 +32,14 @@ export default function ShareRun() {
   async function share() {
     setError('');
     try {
+      // Loaded only when sharing, so an app build without these can still open.
+      const { captureRef } = require('react-native-view-shot') as typeof import('react-native-view-shot');
+      const Sharing = require('expo-sharing') as typeof import('expo-sharing');
       const uri = await captureRef(card, { format: 'png', quality: 1, result: 'tmpfile' });
       if (!(await Sharing.isAvailableAsync())) { setError("Sharing isn't available on this phone."); return; }
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share your run' });
     } catch {
-      setError("Couldn't make the picture. If you're using Expo Go, try the Pacer app.");
+      setError("Couldn't make the picture. This needs the latest version of the Pacer app.");
     }
   }
 
