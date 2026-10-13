@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Screen, SectionLabel } from '../../src/ui';
 import { useTheme } from '../../src/theme';
@@ -49,8 +49,6 @@ export default function PlanGuideScreen() {
 
   return (
     <Screen inset={false}>
-      <Stack.Screen options={{ title: plan.name }} />
-
       <Card style={{ borderColor: t.accent, borderWidth: 1.5 }}>
         <Text style={{ color: t.accent, fontWeight: '700', fontSize: 13 }}>{plan.level} · {plan.weeks} weeks · {plan.perWeek} runs a week</Text>
         <Text style={{ color: t.text, fontSize: 22, fontWeight: '800', marginTop: 4 }}>{guide.goal}</Text>

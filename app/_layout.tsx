@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { setThemePrefs, useTheme } from '../src/theme';
 import { loadSettings } from '../src/storage';
+import { planById } from '../src/plans';
 import { AuthProvider, useAuth } from '../src/auth';
 
 export default function RootLayout() {
@@ -46,7 +47,7 @@ function Routes() {
         <Stack.Screen name="workout/edit" options={{ headerShown: true, title: 'Interval workout', presentation: 'modal' }} />
         <Stack.Screen name="change-username" options={{ headerShown: true, title: 'Username', presentation: 'modal' }} />
         <Stack.Screen name="plans" options={{ headerShown: true, title: 'Training plans' }} />
-        <Stack.Screen name="plan/[id]" options={{ headerShown: true, title: 'Training plan' }} />
+        <Stack.Screen name="plan/[id]" options={({ route }) => ({ headerShown: true, title: planById(String((route.params as { id?: string })?.id))?.name ?? 'Training plan' })} />
         <Stack.Screen name="schedule" options={{ headerShown: true, title: 'Running schedule' }} />
         <Stack.Screen name="achievements" options={{ headerShown: true, title: 'Achievements' }} />
         <Stack.Screen name="friends" options={{ headerShown: true, title: 'Friends', headerBackTitle: 'Back' }} />
