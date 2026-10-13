@@ -107,6 +107,8 @@ export interface Settings {
   duckMusic: boolean;
   /** Weekly distance goal in km. */
   weeklyGoalKm: number;
+  /** Days of the week the runner can run (0 = Sunday). Plan sessions go on these days. */
+  runDays: number[];
 }
 
 /** Progress through a training plan (src/plans.ts). */

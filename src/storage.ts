@@ -114,6 +114,7 @@ export const DEFAULT_SETTINGS: Settings = {
   voice: true, maxHr: '', simulate: false, workoutId: 'preset-beginner',
   coach: 'maya', voiceId: null, voiceRate: 1, hrEvery: 'split', leaderboards: true,
   themeId: 'ocean', appearance: 'system', duckMusic: true, weeklyGoalKm: 10,
+  runDays: [0, 1, 2, 3, 4, 5, 6],
 };
 export const HR_OPTIONS: { label: string; value: HrEvery }[] = [
   { label: 'Off', value: 'off' }, { label: 'Each split', value: 'split' },

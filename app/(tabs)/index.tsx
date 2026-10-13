@@ -11,6 +11,7 @@ import { estimateMinutes, summarize } from '../../src/intervals';
 import { session, SIM_SPEED } from '../../src/session';
 import { useDataVersion, useHr } from '../../src/hooks';
 import { weekStats } from '../../src/progress';
+import { scheduleSessions, weekDays, whenText } from '../../src/schedule';
 import { planById, PlanSession, sessionKey } from '../../src/plans';
 import { PlanSessionCard, WeekGoalCard } from '../../src/progressUi';
 import { connectStrap, disconnectStrap, scanForStraps } from '../../src/heartRate';
@@ -51,6 +52,8 @@ export default function StartScreen() {
   const week = weekStats(runs, s.weeklyGoalKm);
   const activePlan = progress ? planById(progress.planId) : null;
   const nextSession = activePlan ? activePlan.sessions.find((x) => !progress!.done[x.id]) ?? null : null;
+  const upcoming = activePlan ? scheduleSessions(activePlan, progress!, s.runDays, runs) : [];
+  const days = weekDays(s.runDays, runs, upcoming.map((x) => x.date));
 
   /** Starts a run from the form, or a training plan session when `ps` is given. */
   async function start(ps?: PlanSession) {
@@ -94,10 +97,10 @@ export default function StartScreen() {
     <Screen>
       <Title sub="Pick a run and Pacer will coach you through it.">Ready to run?</Title>
 
-      <WeekGoalCard w={week} />
+      <WeekGoalCard w={week} days={days} onSchedule={() => router.push('/schedule')} />
 
       {activePlan ? (
-        <PlanSessionCard plan={activePlan} next={nextSession} doneCount={Object.keys(progress!.done).length} starting={starting}
+        <PlanSessionCard plan={activePlan} next={nextSession} when={upcoming[0] ? whenText(upcoming[0].date) : undefined} doneCount={Object.keys(progress!.done).length} starting={starting}
           onStart={() => nextSession && start(nextSession)} onOpen={() => router.push('/plans')} />
       ) : (
         <Pressable onPress={() => router.push('/plans')} accessibilityRole="button">

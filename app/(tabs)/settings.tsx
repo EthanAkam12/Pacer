@@ -3,6 +3,7 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { dayList } from '../../src/schedule';
 import { Button, Card, Chip, Field, PasswordField, Screen, SectionLabel, Segmented, Title, ToggleRow } from '../../src/ui';
 import { Appearance, setThemePrefs, swatch, THEMES, useTheme } from '../../src/theme';
 import { HR_OPTIONS, loadSettings, saveSettings } from '../../src/storage';
@@ -108,7 +109,7 @@ export default function SettingsScreen() {
         <ToggleRow label="Show me on leaderboards" hint="Turn off to remove your name, rank and times from the leaderboards." value={s.leaderboards} onChange={(leaderboards) => updateBoard({ leaderboards })} />
       </Card>
 
-      <SectionLabel>Weekly goal</SectionLabel>
+      <SectionLabel>Weekly goal and schedule</SectionLabel>
       <Card>
         <Text style={{ color: t.muted, marginBottom: 10 }}>How far you want to run each week. Hit it week after week to build a streak.</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -116,6 +117,7 @@ export default function SettingsScreen() {
             <Chip key={km} small label={`${km} km`} active={s.weeklyGoalKm === km} onPress={() => update({ weeklyGoalKm: km })} />
           ))}
         </View>
+        <Row icon="calendar" label="Running schedule" sub={s.runDays.length === 7 ? 'Any day' : `Runs on ${dayList(s.runDays)}`} onPress={() => router.push('/schedule')} />
       </Card>
 
       <SectionLabel>Appearance</SectionLabel>

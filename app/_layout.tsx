@@ -46,6 +46,7 @@ function Routes() {
         <Stack.Screen name="workout/edit" options={{ headerShown: true, title: 'Interval workout', presentation: 'modal' }} />
         <Stack.Screen name="change-username" options={{ headerShown: true, title: 'Username', presentation: 'modal' }} />
         <Stack.Screen name="plans" options={{ headerShown: true, title: 'Training plans' }} />
+        <Stack.Screen name="schedule" options={{ headerShown: true, title: 'Running schedule' }} />
         <Stack.Screen name="achievements" options={{ headerShown: true, title: 'Achievements' }} />
         <Stack.Screen name="friends" options={{ headerShown: true, title: 'Friends', headerBackTitle: 'Back' }} />
         <Stack.Screen name="runner/[uid]" options={{ headerShown: true, title: 'Runner' }} />

@@ -6,6 +6,7 @@ import { useTheme } from './theme';
 import { Button, Card } from './ui';
 import { WeekStats } from './progress';
 import { PlanSession, TrainingPlan } from './plans';
+import { DAY_SHORT, WeekDay } from './schedule';
 
 /** A ring that fills as this week's distance approaches the goal. */
 export function GoalRing({ value, size = 76, stroke = 9, color, track }: { value: number; size?: number; stroke?: number; color: string; track: string }) {
@@ -21,7 +22,7 @@ export function GoalRing({ value, size = 76, stroke = 9, color, track }: { value
   );
 }
 
-export function WeekGoalCard({ w, onEdit }: { w: WeekStats; onEdit?: () => void }) {
+export function WeekGoalCard({ w, onEdit, days, onSchedule }: { w: WeekStats; onEdit?: () => void; days?: WeekDay[]; onSchedule?: () => void }) {
   const t = useTheme();
   const pct = w.goal ? w.km / w.goal : 0;
   return (
@@ -44,13 +45,45 @@ export function WeekGoalCard({ w, onEdit }: { w: WeekStats; onEdit?: () => void 
           <Text style={{ color: t.muted, fontSize: 11 }}>{w.streak === 1 ? 'week' : 'weeks'}</Text>
         </Pressable>
       </View>
+      {days ? <WeekStrip days={days} onPress={onSchedule} /> : null}
     </Card>
   );
 }
 
+/**
+ * Monday to Sunday: a filled dot for days with a run, an outlined dot for plan sessions still to
+ * come, and a dash for days the runner can't run. Today is highlighted. Tap to edit the schedule.
+ */
+export function WeekStrip({ days, onPress }: { days: WeekDay[]; onPress?: () => void }) {
+  const t = useTheme();
+  return (
+    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole="button" accessibilityLabel="Running schedule"
+      style={{ flexDirection: 'row', marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: t.line }}>
+      {days.map((d) => (
+        <View key={d.day} style={{ flex: 1, alignItems: 'center', gap: 5 }}>
+          <Text style={{ color: d.isToday ? t.accent : t.muted, fontWeight: d.isToday ? '800' : '600', fontSize: 12 }}>{DAY_SHORT[d.day].slice(0, 2)}</Text>
+          {d.ran ? (
+            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="checkmark" size={14} color={t.onAccent} />
+            </View>
+          ) : d.planned && !d.past ? (
+            <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: t.accent }} />
+          ) : !d.free ? (
+            <View style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 10, height: 2, borderRadius: 1, backgroundColor: t.muted, opacity: 0.6 }} />
+            </View>
+          ) : (
+            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: t.chip, opacity: d.past ? 0.5 : 1 }} />
+          )}
+        </View>
+      ))}
+    </Pressable>
+  );
+}
+
 /** "Today's session" from the active training plan, with a button to start it. */
-export function PlanSessionCard({ plan, next, doneCount, onStart, onOpen, starting }: {
-  plan: TrainingPlan; next: PlanSession | null; doneCount: number; onStart: () => void; onOpen: () => void; starting: boolean;
+export function PlanSessionCard({ plan, next, when, doneCount, onStart, onOpen, starting }: {
+  plan: TrainingPlan; next: PlanSession | null; when?: string; doneCount: number; onStart: () => void; onOpen: () => void; starting: boolean;
 }) {
   const t = useTheme();
   const total = plan.sessions.length;
@@ -67,9 +100,18 @@ export function PlanSessionCard({ plan, next, doneCount, onStart, onOpen, starti
       </View>
       {next ? (
         <>
-          <Text style={{ color: t.muted, fontWeight: '600' }}>Next session · {next.title}</Text>
+          <Text style={{ color: t.muted, fontWeight: '600' }}>
+            {when === 'today' ? 'Today' : 'Next session'} · {next.title}
+          </Text>
           <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', marginTop: 2, lineHeight: 24 }}>{next.summary}</Text>
-          <Button label={starting ? 'Starting…' : 'Start this session'} onPress={onStart} disabled={starting} style={{ marginTop: 12 }} />
+          {when && when !== 'today' ? (
+            <Text style={{ color: t.muted, marginTop: 4 }}>Rest day today. This one's planned {when}, but you can do it now if you like.</Text>
+          ) : null}
+          <Button
+            label={starting ? 'Starting…' : when && when !== 'today' ? 'Start it now' : 'Start this session'}
+            variant={when && when !== 'today' ? 'secondary' : undefined}
+            onPress={onStart} disabled={starting} style={{ marginTop: 12 }}
+          />
         </>
       ) : (
         <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>Plan complete! Amazing work. 🎉</Text>
