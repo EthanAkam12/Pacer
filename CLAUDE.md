@@ -37,6 +37,7 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
   - @expo/vector-icons (missing from the new template, which caused "Unable to resolve")
   - react-native-safe-area-context, react-native-screens, expo-status-bar
 - **ngrok error:** "Install @expo/ngrok and try again" appeared even after installing it. Re-running the command fixed it.
+- **Development build installed (Android):** first EAS build succeeded and is installed on Ethan's phone. Installing the APK needed a parent to switch on "Apps from unknown sources" in Google Family Link (child profile → device → settings). Answer **n** to "Install and run the Android build on an emulator?" after `eas build`. The APK is large, so download on Wi-Fi.
 - **Typing while the server runs:** letters are read as Expo shortcuts. **i** tried to open the iOS simulator and asked for Xcode. Always press Ctrl + C and wait for the `pacer>` line before running other commands.
 
 ## Project structure
