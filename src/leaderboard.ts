@@ -1,10 +1,11 @@
 import {
-  collection, deleteDoc, doc, getCountFromServer, getDocs, limit, orderBy, query, QueryConstraint, serverTimestamp, setDoc, where,
+  collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, orderBy, query, QueryConstraint, serverTimestamp, setDoc, where,
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { loadRuns, loadSettings } from './storage';
 import { personalBests } from './records';
 import { RANKED, rankFor } from './ranks';
+import { weekStats } from './progress';
 import { RunRecord } from './types';
 
 /**
@@ -14,7 +15,7 @@ import { RunRecord } from './types';
  */
 
 /** week/total: most km. rank: best overall rank. best1609 etc: fastest time at that distance. */
-export type Board = 'week' | 'total' | 'rank' | `best${string}`;
+export type Board = 'week' | 'total' | 'rank' | 'trophies' | `best${string}`;
 
 export interface Row { uid: string; name: string; tier: string; value: number; position: number }
 
@@ -33,7 +34,7 @@ function weekStart(): number {
   return new Date(y, mo - 1, d).getTime();
 }
 
-function summary(runs: RunRecord[]) {
+export function summary(runs: RunRecord[], goalKm = 10) {
   const real = runs.filter((r) => !r.simulated);
   const start = weekStart();
   const round = (n: number) => Math.round(n * 100) / 100;
@@ -41,11 +42,12 @@ function summary(runs: RunRecord[]) {
   for (const pb of personalBests(real)) bests[`best${pb.key}`] = pb.time;
   const rank = rankFor(real);
   // The last few runs, for friends to see. Only a summary: no route or heart rate.
-  const recent = real.slice(0, 5).map((r) => ({ km: round(r.distance / 1000), sec: Math.round(r.duration), at: r.startedAt, title: r.title.slice(0, 40) }));
+  const recent = real.slice(0, 5).map((r) => ({ id: r.id, km: round(r.distance / 1000), sec: Math.round(r.duration), at: r.startedAt, title: r.title.slice(0, 40) }));
   return {
     rank,
     recent,
     runs: real.length,
+    streak: weekStats(real, goalKm).streak,
     totalKm: round(real.reduce((a, r) => a + r.distance, 0) / 1000),
     weekKm: round(real.filter((r) => Date.parse(r.startedAt) >= start).reduce((a, r) => a + r.distance, 0) / 1000),
     bests,
@@ -60,12 +62,12 @@ export async function syncMyEntry(): Promise<void> {
   if (!r) return;
   const [s, runs] = await Promise.all([loadSettings(), loadRuns()]);
   if (!s.leaderboards || !r.name) { await removeMyEntry(); return; }
-  const { rank, totalKm, weekKm, bests, recent, runs: count } = summary(runs);
+  const { rank, totalKm, weekKm, bests, recent, runs: count, streak } = summary(runs, s.weeklyGoalKm);
   const name = r.name;
   await setDoc(doc(r.db, 'profiles', r.uid), {
     name, tier: rank.id, totalKm, ...bests, ...(rank.score ? { rankScore: rank.score } : {}),
-    weekKm, weekKey: weekKey(), runs: count, recent, updatedAt: serverTimestamp(),
-  });
+    weekKm, weekKey: weekKey(), runs: count, recent, streak, updatedAt: serverTimestamp(),
+  }, { merge: true });
   const entry = doc(r.db, 'weeks', weekKey(), 'entries', r.uid);
   if (weekKm > 0) await setDoc(entry, { name, tier: rank.id, km: weekKm, updatedAt: serverTimestamp() });
   else await deleteDoc(entry).catch(() => {});
@@ -86,7 +88,7 @@ export async function fetchBoard(board: Board): Promise<{ rows: Row[]; me: Row |
   if (!r) throw new Error('signed-out');
   const week = board === 'week';
   const col = week ? collection(r.db, 'weeks', weekKey(), 'entries') : collection(r.db, 'profiles');
-  const field = week ? 'km' : board === 'total' ? 'totalKm' : board === 'rank' ? 'rankScore' : board;
+  const field = week ? 'km' : board === 'total' ? 'totalKm' : board === 'rank' ? 'rankScore' : board;  // 'trophies' is its own field
   const fastest = board.startsWith('best') || board === 'rank';
   const order: QueryConstraint = orderBy(field, fastest ? 'asc' : 'desc');
 
@@ -103,7 +105,8 @@ export async function fetchBoard(board: Board): Promise<{ rows: Row[]; me: Row |
   let me: Row | null = null;
   if (!rows.some((x) => x.uid === r.uid)) {
     const mine = summary(await loadRuns());
-    const value = week ? mine.weekKm : board === 'total' ? mine.totalKm : board === 'rank' ? mine.rank.score : mine.bests[board];
+    const value = week ? mine.weekKm : board === 'total' ? mine.totalKm : board === 'rank' ? mine.rank.score
+      : board === 'trophies' ? await myTrophiesCount() : mine.bests[board];
     const s = await loadSettings();
     if (value && s.leaderboards && r.name) {
       const ahead = await getCountFromServer(query(col, where(field, fastest ? '<' : '>', value)));
@@ -111,6 +114,13 @@ export async function fetchBoard(board: Board): Promise<{ rows: Row[]; me: Row |
     }
   }
   return { rows, me };
+}
+
+async function myTrophiesCount() {
+  const r = ready();
+  if (!r) return 0;
+  const snap = await getDoc(doc(r.db, 'profiles', r.uid));
+  return snap.exists() ? Number(snap.data().trophies ?? 0) : 0;
 }
 
 export const distanceBoard = (key: string) => `best${key}` as Board;

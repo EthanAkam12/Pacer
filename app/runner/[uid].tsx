@@ -7,6 +7,10 @@ import { RankBadge } from '../../src/badge';
 import { followingIds, getProfile, Profile, unfollow, follow } from '../../src/friends';
 import { RANKED, stepFor, ladder } from '../../src/ranks';
 import { fmtShortDate, fmtTime } from '../../src/format';
+import { CheerCard, TrophyCount } from '../../src/socialUi';
+import { loadRuns, loadSettings } from '../../src/storage';
+import { summary } from '../../src/leaderboard';
+import { useAuth } from '../../src/auth';
 
 export default function RunnerScreen() {
   const t = useTheme();
@@ -14,10 +18,13 @@ export default function RunnerScreen() {
   const { uid } = useLocalSearchParams<{ uid: string }>();
   const [p, setP] = useState<Profile | null | undefined>(undefined);
   const [following, setFollowing] = useState(false);
+  const [me, setMe] = useState<ReturnType<typeof summary> | null>(null);
+  const { username } = useAuth();
 
   useEffect(() => {
     getProfile(String(uid)).then(setP).catch(() => setP(null));
     followingIds().then((ids) => setFollowing(ids.includes(String(uid)))).catch(() => {});
+    Promise.all([loadRuns(), loadSettings()]).then(([runs, s]) => setMe(summary(runs, s.weeklyGoalKm)));
   }, [uid]);
 
   if (p === undefined) return <Screen inset={false}><ActivityIndicator color={t.accent} /></Screen>;
@@ -40,7 +47,10 @@ export default function RunnerScreen() {
           <RankBadge id={p.tier} size={64} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: t.text, fontSize: 24, fontWeight: '900' }}>{p.name}</Text>
-            <Text style={{ color: t.muted }}>{tierLabel} overall</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Text style={{ color: t.muted }}>{tierLabel} overall</Text>
+              <TrophyCount n={p.trophies} />
+            </View>
           </View>
         </View>
         <View style={{ flexDirection: 'row', marginTop: 14 }}>
@@ -51,8 +61,43 @@ export default function RunnerScreen() {
             </View>
           ))}
         </View>
-        <Button small variant={following ? 'secondary' : 'primary'} label={following ? 'Following' : 'Follow'} onPress={toggle} style={{ alignSelf: 'flex-start', marginTop: 14 }} />
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+          <Button small variant={following ? 'secondary' : 'primary'} label={following ? 'Following' : 'Follow'} onPress={toggle} />
+          <Button small variant="secondary" label="Challenge" onPress={() => router.push({ pathname: '/challenge/new', params: { invite: p.uid, name: p.name } })} />
+        </View>
       </Card>
+
+      <CheerCard profile={p} />
+
+      {me ? (
+        <>
+          <SectionLabel>You vs {p.name}</SectionLabel>
+          <Card>
+            <View style={{ flexDirection: 'row', paddingBottom: 6 }}>
+              <Text style={{ flex: 1.3, color: t.muted }} />
+              <Text style={{ flex: 1, color: t.muted, fontWeight: '700', textAlign: 'right' }} numberOfLines={1}>{username ?? 'You'}</Text>
+              <Text style={{ flex: 1, color: t.muted, fontWeight: '700', textAlign: 'right' }} numberOfLines={1}>{p.name}</Text>
+            </View>
+            {([
+              ['This week', me.weekKm, p.weekKm, (v: number) => `${v.toFixed(1)} km`, false],
+              ['All time', me.totalKm, p.totalKm, (v: number) => `${v.toFixed(0)} km`, false],
+              ['Runs', me.runs, p.runs, (v: number) => String(v), false],
+              ['Goal streak', me.streak, p.streak, (v: number) => `${v} wk`, false],
+              ...RANKED.map((d) => [`Best ${d.label}`, me.bests[`best${d.key}`] ?? 0, p.bests[d.key] ?? 0, (v: number) => (v ? fmtTime(v) : '–'), true] as const),
+            ] as const).map(([label, a, b, f, low]) => {
+              const aWins = a && b ? (low ? a < b : a > b) : !!a && !b;
+              const bWins = a && b ? (low ? b < a : b > a) : !!b && !a;
+              return (
+                <View key={label} style={{ flexDirection: 'row', paddingVertical: 7, borderTopWidth: 1, borderTopColor: t.line }}>
+                  <Text style={{ flex: 1.3, color: t.text, fontWeight: '600' }}>{label}</Text>
+                  <Text style={{ flex: 1, textAlign: 'right', color: aWins ? t.accent : t.text, fontWeight: aWins ? '800' : '500', fontVariant: ['tabular-nums'] }}>{f(a)}</Text>
+                  <Text style={{ flex: 1, textAlign: 'right', color: bWins ? t.accent : t.text, fontWeight: bWins ? '800' : '500', fontVariant: ['tabular-nums'] }}>{f(b)}</Text>
+                </View>
+              );
+            })}
+          </Card>
+        </>
+      ) : null}
 
       <SectionLabel>Best times</SectionLabel>
       <Card>

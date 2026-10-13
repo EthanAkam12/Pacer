@@ -11,6 +11,7 @@ import { kindColor, Theme, useTheme } from '../src/theme';
 import { fmtKm, fmtPace, fmtTime } from '../src/format';
 import { KIND_NAME, stepLabel } from '../src/intervals';
 import { syncMyEntry } from '../src/leaderboard';
+import { collectCheers, setRunning, syncAllChallenges } from '../src/social';
 
 /** Moves an Animated.Value smoothly to each new target, over about one update interval. */
 function useGlide(target: number, ms = 900) {
@@ -44,9 +45,19 @@ export default function RunScreen() {
     return () => sub.remove();
   }, []);
 
+  // Show friends you're running, and read out any cheers they send (checked every 20 seconds).
+  useEffect(() => {
+    const started = Date.now() - 5 * 60e3; // cheers sent just before you started count too
+    setRunning(true).catch(() => {});
+    const poll = setInterval(() => {
+      collectCheers(started).then((list) => list.forEach((c) => session.announceCheer(c.from, c.text))).catch(() => {});
+    }, 20000);
+    return () => { clearInterval(poll); setRunning(false).catch(() => {}); };
+  }, []);
+
   useEffect(() => {
     if (s.phase === 'finished') {
-      if (s.recordId && !s.simulated) syncMyEntry().catch(() => {});
+      if (s.recordId && !s.simulated) syncMyEntry().then(() => syncAllChallenges()).catch(() => {});
       router.replace(s.recordId ? `/run-detail/${s.recordId}` : '/');
     } else if (s.phase === 'idle') router.replace('/');
   }, [s.phase, s.recordId]);

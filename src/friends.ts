@@ -13,7 +13,11 @@ export interface Profile {
   totalKm: number;
   weekKm: number; // 0 unless the profile was updated this week
   runs: number;
-  recent: { km: number; sec: number; at: string; title: string }[];
+  recent: { id?: string; km: number; sec: number; at: string; title: string }[];
+  streak: number;
+  trophies: number;
+  /** When they started their current run (ms), if they're running now. */
+  runningSince: number | null;
   bests: Record<string, number>; // "5000" -> seconds
   rankScore: number | null;
 }
@@ -25,6 +29,9 @@ function toProfile(uid: string, v: Record<string, unknown>): Profile {
     uid, name: String(v.name ?? ''), tier: String(v.tier ?? 'unranked'), totalKm: Number(v.totalKm ?? 0),
     weekKm: v.weekKey === weekKey() ? Number(v.weekKm ?? 0) : 0, runs: Number(v.runs ?? 0),
     recent: Array.isArray(v.recent) ? (v.recent as Profile['recent']) : [], bests, rankScore: typeof v.rankScore === 'number' ? v.rankScore : null,
+    streak: Number(v.streak ?? 0),
+    trophies: Number(v.trophies ?? 0),
+    runningSince: v.runningSince && typeof (v.runningSince as { toMillis?: () => number }).toMillis === 'function' ? (v.runningSince as { toMillis: () => number }).toMillis() : null,
   };
 }
 

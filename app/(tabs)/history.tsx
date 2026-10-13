@@ -9,6 +9,7 @@ import { useTheme } from '../../src/theme';
 import { loadRuns, loadSettings } from '../../src/storage';
 import { useDataVersion } from '../../src/hooks';
 import { ACHIEVEMENTS, earned } from '../../src/progress';
+import { ProgressSection } from '../../src/progressStats';
 import { RunRecord } from '../../src/types';
 import { fmtDate, fmtKm, fmtPace, fmtShortDate, fmtTime } from '../../src/format';
 
@@ -33,8 +34,6 @@ export default function HistoryScreen() {
   const sum = (list: RunRecord[]) => list.reduce((a, r) => a + r.distance, 0);
   const pbs = personalBests(real);
   const weeks = weeklyDistance(real, 8);
-  const paceRuns = real.filter((r) => r.avgPace > 0 && r.distance >= 500).slice(0, 12).reverse();
-  const paces = paceRuns.map((r) => r.avgPace);
 
   return (
     <Screen>
@@ -85,17 +84,7 @@ export default function HistoryScreen() {
         </Card>
       ) : null}
 
-      {paceRuns.length >= 2 ? (
-        <Card>
-          <LineChart
-            title="Average pace, recent runs (up is faster)"
-            invert
-            topLabel={fmtPace(Math.min(...paces))}
-            bottomLabel={fmtPace(Math.max(...paces))}
-            data={paceRuns.map((r) => ({ label: fmtShortDate(r.startedAt), value: r.avgPace, text: `${fmtPace(r.avgPace)} /km, ${fmtKm(r.distance)} km` }))}
-          />
-        </Card>
-      ) : null}
+      {real.length ? <ProgressSection runs={real} /> : null}
 
       {runs.length === 0 ? (
         <Card>

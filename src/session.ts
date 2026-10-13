@@ -239,6 +239,13 @@ class RunSession {
     this.emit();
   }
 
+  /** A cheer from a friend, read out by the coach (queued behind anything it's already saying). */
+  announceCheer(from: string, text: string) {
+    if (this.phase !== 'running' && this.phase !== 'paused') return;
+    this.say(`Cheer from ${from}: ${text}`, true);
+    this.emit();
+  }
+
   subscribe(l: Listener) {
     this.listeners.add(l);
     l(this.snapshot());

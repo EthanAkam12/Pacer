@@ -26,7 +26,10 @@ service cloud.firestore {
       allow create, update: if isMe(uid)
         && request.resource.data.keys().hasOnly(['name', 'tier', 'rankScore', 'totalKm',
              'best1000', 'best1609', 'best5000', 'best10000', 'best21097', 'best42195',
-             'weekKm', 'weekKey', 'runs', 'recent', 'updatedAt'])
+             'weekKm', 'weekKey', 'runs', 'recent', 'streak', 'trophies', 'runningSince', 'updatedAt'])
+        && (!('trophies' in request.resource.data) || (request.resource.data.trophies is int && request.resource.data.trophies >= 0 && request.resource.data.trophies < 10000))
+        && (!('runningSince' in request.resource.data) || request.resource.data.runningSince == request.time
+            || (resource != null && request.resource.data.runningSince == resource.data.runningSince))
         && (!('recent' in request.resource.data) || (request.resource.data.recent is list && request.resource.data.recent.size() <= 5))
         && (!('weekKm' in request.resource.data) || (request.resource.data.weekKm is number && request.resource.data.weekKm < 2000))
         && okName(request.resource.data.name)
@@ -57,6 +60,71 @@ service cloud.firestore {
     // Each runner's own backup (runs, workouts, plan progress) and who they follow. Private to them.
     match /users/{uid}/{document=**} {
       allow read, write: if isMe(uid);
+    }
+
+    // "Well done" on someone's run: one document per person saying it.
+    match /wellDone/{owner}/runs/{run}/from/{uid} {
+      allow read: if verified();
+      allow create: if isMe(uid) && uid != owner
+        && request.resource.data.keys().hasOnly(['name', 'at'])
+        && okName(request.resource.data.name) && request.resource.data.at == request.time;
+      allow delete: if isMe(uid);
+    }
+
+    // Cheers for someone who's running. Only they can read (and then delete) them.
+    match /cheers/{to}/items/{id} {
+      allow read, delete: if isMe(to);
+      allow create: if verified()
+        && request.resource.data.keys().hasOnly(['fromUid', 'fromName', 'text', 'at'])
+        && request.resource.data.fromUid == request.auth.uid
+        && okName(request.resource.data.fromName)
+        && request.resource.data.text is string && request.resource.data.text.size() <= 80
+        && request.resource.data.at == request.time;
+    }
+
+    // Challenges. Members and invitees can see them; people can only add or remove themselves,
+    // and the winner can only be recorded once the challenge is over.
+    function inChallenge(c) {
+      return request.auth.uid in c.members || request.auth.uid in c.invited;
+    }
+    match /challenges/{id} {
+      allow read: if verified() && inChallenge(resource.data);
+      allow create: if verified()
+        && request.resource.data.keys().hasOnly(['name', 'type', 'start', 'end', 'creator', 'creatorName', 'members', 'invited', 'createdAt'])
+        && request.resource.data.creator == request.auth.uid
+        && request.resource.data.members == [request.auth.uid]
+        && request.resource.data.invited is list && request.resource.data.invited.size() <= 20
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && request.resource.data.type in ['distance', 'runs', 'fastest5k']
+        && request.resource.data.end > request.resource.data.start
+        && request.resource.data.end - request.resource.data.start <= 31 * 86400000;
+      allow update: if verified() && inChallenge(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'invited', 'winner', 'winnerName'])
+        // members and invited: you can only add or remove yourself, and only join if you were invited
+        && request.resource.data.members.toSet().difference(resource.data.members.toSet()).hasOnly([request.auth.uid])
+        && resource.data.members.toSet().difference(request.resource.data.members.toSet()).hasOnly([request.auth.uid])
+        && request.resource.data.invited.toSet().difference(resource.data.invited.toSet()).size() == 0
+        && resource.data.invited.toSet().difference(request.resource.data.invited.toSet()).hasOnly([request.auth.uid])
+        && (!(request.auth.uid in request.resource.data.members) || request.auth.uid in resource.data.members || request.auth.uid in resource.data.invited)
+        // the winner, once, after the end
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['winner', 'winnerName'])
+            || (!('winner' in resource.data) && request.time.toMillis() >= resource.data.end));
+      allow delete: if verified() && resource.data.creator == request.auth.uid;
+
+      match /progress/{uid} {
+        allow read: if verified() && inChallenge(get(/databases/$(database)/documents/challenges/$(id)).data);
+        allow write: if isMe(uid)
+          && request.auth.uid in get(/databases/$(database)/documents/challenges/$(id)).data.members
+          && request.resource.data.keys().hasOnly(['name', 'value', 'updatedAt'])
+          && request.resource.data.value is number && request.resource.data.value >= 0 && request.resource.data.value < 100000;
+      }
+    }
+
+    // Trophies: one per challenge won, and only by the recorded winner.
+    match /trophies/{uid}/won/{challengeId} {
+      allow read: if verified();
+      allow create: if isMe(uid)
+        && get(/databases/$(database)/documents/challenges/$(challengeId)).data.winner == uid;
     }
 
     match /weeks/{week}/entries/{uid} {

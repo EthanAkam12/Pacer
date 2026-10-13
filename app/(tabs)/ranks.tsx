@@ -15,7 +15,7 @@ import { fmtPace, fmtShortDate, fmtTime } from '../../src/format';
 import { RunRecord } from '../../src/types';
 
 type Sel = 'overall' | string; // or a ranked distance key
-type OverallBoard = 'week' | 'total' | 'rank';
+type OverallBoard = 'week' | 'total' | 'rank' | 'trophies';
 
 export default function RanksScreen() {
   const t = useTheme();
@@ -62,7 +62,7 @@ export default function RanksScreen() {
   const dist = sel === 'overall' ? rank.distance : distanceOf(sel);
   const ladderKey = dist?.key ?? '5000';
   const isTime = board.startsWith('best');
-  const show = (r: Row) => board === 'rank' ? ladder().find((s) => s.id === r.tier)?.label ?? '' : isTime ? fmtTime(r.value) : `${r.value.toFixed(1)} km`;
+  const show = (r: Row) => board === 'trophies' ? `🏆 ${r.value}` : board === 'rank' ? ladder().find((s) => s.id === r.tier)?.label ?? '' : isTime ? fmtTime(r.value) : `${r.value.toFixed(1)} km`;
   const badgeOf = (r: Row) => (isTime ? stepFor(sel, r.value)?.id ?? 'unranked' : r.tier);
 
   return (
@@ -151,10 +151,10 @@ export default function RanksScreen() {
         <Card>
           <Segmented<'everyone' | 'friends'> options={[{ label: 'Everyone', value: 'everyone' }, { label: 'Friends', value: 'friends' }]} value={scope} onChange={setScope} />
           {sel === 'overall' ? (
-            <Segmented<OverallBoard> options={[{ label: 'This week', value: 'week' }, { label: 'All time', value: 'total' }, { label: 'Top ranked', value: 'rank' }]} value={overallBoard} onChange={setOverallBoard} />
+            <Segmented<OverallBoard> options={[{ label: 'Week', value: 'week' }, { label: 'All time', value: 'total' }, { label: 'Ranked', value: 'rank' }, { label: 'Trophies', value: 'trophies' }]} value={overallBoard} onChange={setOverallBoard} />
           ) : null}
           <Text style={{ color: t.muted, marginBottom: 6 }}>
-            {board === 'week' ? 'Most distance since Monday.' : board === 'total' ? 'Most distance ever.' : board === 'rank' ? 'Highest overall rank.' : `Fastest ${dist!.long} within any run.`}
+            {board === 'week' ? 'Most distance since Monday.' : board === 'total' ? 'Most distance ever.' : board === 'rank' ? 'Highest overall rank.' : board === 'trophies' ? 'Most challenges won.' : `Fastest ${dist!.long} within any run.`}
           </Text>
           {hidden ? (
             <Pressable onPress={() => router.navigate('/settings')}>
@@ -206,7 +206,7 @@ function LeaderRow({ row, badge, me, value }: { row: Row; badge: string; me: boo
 /** Builds a leaderboard from you and the runners you follow. */
 function friendsBoard(ps: Profile[], board: Board): { rows: Row[]; me: Row | null } {
   const fastest = board.startsWith('best') || board === 'rank';
-  const value = (p: Profile) => board === 'week' ? p.weekKm : board === 'total' ? p.totalKm : board === 'rank' ? p.rankScore : p.bests[board.slice(4)];
+  const value = (p: Profile) => board === 'week' ? p.weekKm : board === 'total' ? p.totalKm : board === 'rank' ? p.rankScore : board === 'trophies' ? p.trophies : p.bests[board.slice(4)];
   const scored = ps.map((p) => ({ p, v: value(p) })).filter((x): x is { p: Profile; v: number } => typeof x.v === 'number' && x.v > 0)
     .sort((a, b) => (fastest ? a.v - b.v : b.v - a.v));
   const rows: Row[] = [];
