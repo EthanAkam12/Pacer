@@ -6,7 +6,9 @@ import { Card, Screen, SectionLabel, Title } from '../../src/ui';
 import { BarChart, Datum, LineChart } from '../../src/charts';
 import { personalBests } from '../../src/records';
 import { useTheme } from '../../src/theme';
-import { loadRuns } from '../../src/storage';
+import { loadRuns, loadSettings } from '../../src/storage';
+import { useDataVersion } from '../../src/hooks';
+import { ACHIEVEMENTS, earned } from '../../src/progress';
 import { RunRecord } from '../../src/types';
 import { fmtDate, fmtKm, fmtPace, fmtShortDate, fmtTime } from '../../src/format';
 
@@ -14,12 +16,14 @@ export default function HistoryScreen() {
   const t = useTheme();
   const router = useRouter();
   const [runs, setRuns] = useState<RunRecord[] | null>(null);
+  const [goal, setGoal] = useState(10);
+  const version = useDataVersion();
 
   useFocusEffect(useCallback(() => {
     let alive = true;
-    loadRuns().then((r) => { if (alive) setRuns(r); });
+    Promise.all([loadRuns(), loadSettings()]).then(([r, s]) => { if (alive) { setRuns(r); setGoal(s.weeklyGoalKm); } });
     return () => { alive = false; };
-  }, []));
+  }, [version]));
 
   if (!runs) return <Screen>{null}</Screen>;
 
@@ -49,6 +53,17 @@ export default function HistoryScreen() {
       <Text style={{ color: t.muted, marginBottom: 16, marginTop: 2 }}>
         All time: {fmtKm(sum(real))} km across {real.length} {real.length === 1 ? 'run' : 'runs'}
       </Text>
+
+      <Pressable onPress={() => router.push('/achievements')} accessibilityRole="button">
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Ionicons name="medal" size={26} color={t.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16 }}>Achievements</Text>
+            <Text style={{ color: t.muted }}>{earned(real, goal).size} of {ACHIEVEMENTS.length} unlocked</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={t.muted} />
+        </Card>
+      </Pressable>
 
       {pbs.length ? (
         <Card>

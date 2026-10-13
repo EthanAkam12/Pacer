@@ -9,6 +9,8 @@ import { allRanks, distanceOf, ladder, Rank, RANKED, rankFor, stepFor, WINDOW_DA
 import { RankBadge } from '../../src/badge';
 import { Board, distanceBoard, fetchBoard, notSetUp, Row, syncMyEntry } from '../../src/leaderboard';
 import { useAuth } from '../../src/auth';
+import { friendsAndMe, Profile } from '../../src/friends';
+import { useDataVersion } from '../../src/hooks';
 import { fmtPace, fmtShortDate, fmtTime } from '../../src/format';
 import { RunRecord } from '../../src/types';
 
@@ -27,6 +29,8 @@ export default function RanksScreen() {
   const [data, setData] = useState<{ rows: Row[]; me: Row | null } | null>(null);
   const [error, setError] = useState('');
   const [synced, setSynced] = useState(0);
+  const [scope, setScope] = useState<'everyone' | 'friends'>('everyone');
+  const version = useDataVersion();
 
   const online = configured && !!user && !!username;
   const board: Board = sel === 'overall' ? overallBoard : distanceBoard(sel);
@@ -40,17 +44,17 @@ export default function RanksScreen() {
       if (online) syncMyEntry().catch(() => {}).finally(() => alive && setSynced((n) => n + 1));
     });
     return () => { alive = false; };
-  }, [online]));
+  }, [online, version]));
 
   useEffect(() => {
     if (!online || !synced) return;
     let alive = true;
     setData(null); setError('');
-    fetchBoard(board)
+    (scope === 'friends' ? friendsAndMe().then((ps) => friendsBoard(ps, board)) : fetchBoard(board))
       .then((d) => alive && setData(d))
       .catch((e) => alive && setError(notSetUp(e) ? 'setup' : 'offline'));
     return () => { alive = false; };
-  }, [board, online, synced]);
+  }, [board, online, synced, scope]);
 
   if (!runs) return <Screen>{null}</Screen>;
   const ranks = allRanks(runs);
@@ -63,7 +67,15 @@ export default function RanksScreen() {
 
   return (
     <Screen>
-      <Title sub="Get faster to climb the ranks. Run more to top the leaderboards.">Ranks</Title>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+        <View style={{ flex: 1 }}><Title sub="Get faster to climb the ranks. Run more to top the leaderboards.">Ranks</Title></View>
+        {online ? (
+          <Pressable onPress={() => router.push('/friends')} accessibilityRole="button" style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: t.chip, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }}>
+            <Ionicons name="people" size={16} color={t.accent} />
+            <Text style={{ color: t.text, fontWeight: '700' }}>Friends</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, marginBottom: 12 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>
         <Chip label="Overall" active={sel === 'overall'} onPress={() => setSel('overall')} />
@@ -137,6 +149,7 @@ export default function RanksScreen() {
         <Card><Text style={{ color: t.muted }}>Sign in to see the leaderboards.</Text></Card>
       ) : (
         <Card>
+          <Segmented<'everyone' | 'friends'> options={[{ label: 'Everyone', value: 'everyone' }, { label: 'Friends', value: 'friends' }]} value={scope} onChange={setScope} />
           {sel === 'overall' ? (
             <Segmented<OverallBoard> options={[{ label: 'This week', value: 'week' }, { label: 'All time', value: 'total' }, { label: 'Top ranked', value: 'rank' }]} value={overallBoard} onChange={setOverallBoard} />
           ) : null}
@@ -188,4 +201,18 @@ function LeaderRow({ row, badge, me, value }: { row: Row; badge: string; me: boo
       <Text style={{ color: t.text, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{value}</Text>
     </View>
   );
+}
+
+/** Builds a leaderboard from you and the runners you follow. */
+function friendsBoard(ps: Profile[], board: Board): { rows: Row[]; me: Row | null } {
+  const fastest = board.startsWith('best') || board === 'rank';
+  const value = (p: Profile) => board === 'week' ? p.weekKm : board === 'total' ? p.totalKm : board === 'rank' ? p.rankScore : p.bests[board.slice(4)];
+  const scored = ps.map((p) => ({ p, v: value(p) })).filter((x): x is { p: Profile; v: number } => typeof x.v === 'number' && x.v > 0)
+    .sort((a, b) => (fastest ? a.v - b.v : b.v - a.v));
+  const rows: Row[] = [];
+  scored.forEach(({ p, v }, i) => {
+    const position = i > 0 && v === rows[i - 1].value ? rows[i - 1].position : i + 1;
+    rows.push({ uid: p.uid, name: p.name, tier: p.tier, value: v, position });
+  });
+  return { rows, me: null };
 }

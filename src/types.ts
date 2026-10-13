@@ -18,7 +18,7 @@ export interface Workout {
 
 export type RunMode = 'distance' | 'intervals';
 
-export type CoachStyle = 'friendly' | 'tough' | 'calm' | 'minimal' | 'cheeky';
+export type CoachStyle = 'friendly' | 'tough' | 'calm' | 'minimal' | 'cheeky' | 'wise' | 'technical';
 
 /** When the coach reads out heart rate: never, with each split, every N seconds (t30) or every N metres (d500). */
 export type HrEvery = 'off' | 'split' | 't30' | 't60' | 't120' | 't300' | 'd500' | 'd1000';
@@ -38,6 +38,10 @@ export interface Plan {
   voicePitch: number;
   hrEvery: HrEvery;
   duckMusic: boolean;
+  weeklyGoalKm: number;
+  /** Training plan session this run is for ("c25k:w3s2") and how the coach introduces it. */
+  planSession?: string;
+  planLabel?: string;
 }
 
 export interface Split {
@@ -76,6 +80,8 @@ export interface RunRecord {
   bests?: Record<string, number>;
   /** Distance keys that were personal bests when this run was saved. */
   pbs?: string[];
+  /** Training plan session this run was for, e.g. "c25k:w3s2". */
+  planSession?: string;
 }
 
 export interface Settings {
@@ -99,6 +105,16 @@ export interface Settings {
   appearance: 'system' | 'light' | 'dark';
   /** Lower music and podcasts while the coach talks. */
   duckMusic: boolean;
+  /** Weekly distance goal in km. */
+  weeklyGoalKm: number;
+}
+
+/** Progress through a training plan (src/plans.ts). */
+export interface PlanProgress {
+  planId: string;
+  startedAt: string;
+  /** Session ids ("w3s2") finished, with the run that finished them. */
+  done: Record<string, string>;
 }
 
 export type Phase = 'idle' | 'running' | 'paused' | 'finishing' | 'finished';

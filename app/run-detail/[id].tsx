@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import Svg, { Circle, Polyline } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { BarChart } from '../../src/charts';
+import { RunMap } from '../../src/map';
+import { planById } from '../../src/plans';
 import { PB_DISTANCES, runBests } from '../../src/records';
 import { Button, Card, Screen, SectionLabel, Stat } from '../../src/ui';
 import { kindColor, useTheme } from '../../src/theme';
@@ -43,9 +44,11 @@ export default function RunDetail() {
   return (
     <Screen inset={false}>
       <Text style={{ fontSize: 28, fontWeight: '800', color: t.text }}>{run.title}</Text>
-      <Text style={{ color: t.muted, marginBottom: 16 }}>
+      <Text style={{ color: t.muted, marginBottom: 12 }}>
         {fmtDate(run.startedAt)}{run.simulated ? ', practice run' : ''}{!run.completed ? ', ended early' : ''}
+        {run.planSession ? ` · ${planById(run.planSession.split(':')[0])?.name ?? 'Training plan'}` : ''}
       </Text>
+      <Button small label="Share this run" onPress={() => router.push(`/share/${run.id}`)} style={{ alignSelf: 'flex-start', marginBottom: 14 }} />
 
       <Card>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -60,7 +63,7 @@ export default function RunDetail() {
       {run.route.length > 1 ? (
         <Card>
           <SectionLabel>Route</SectionLabel>
-          <RouteSketch route={run.route} color={t.accent} start={t.walk} />
+          <RunMap route={run.route} />
         </Card>
       ) : null}
 
@@ -135,23 +138,5 @@ export default function RunDetail() {
 
       <Button variant="danger" label="Delete run" onPress={remove} style={{ marginTop: 8 }} />
     </Screen>
-  );
-}
-
-function RouteSketch({ route, color, start }: { route: { lat: number; lon: number }[]; color: string; start: string }) {
-  const W = 320, H = 200, pad = 14;
-  const k = Math.cos((route[0].lat * Math.PI) / 180);
-  const xs = route.map((p) => p.lon * k), ys = route.map((p) => p.lat);
-  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const scale = Math.min((W - 2 * pad) / Math.max(maxX - minX, 1e-9), (H - 2 * pad) / Math.max(maxY - minY, 1e-9));
-  const offX = (W - (maxX - minX) * scale) / 2, offY = (H - (maxY - minY) * scale) / 2;
-  const pts = route.map((p, i) => [offX + (xs[i] - minX) * scale, H - (offY + (ys[i] - minY) * scale)]);
-  const [sx, sy] = pts[0], [ex, ey] = pts[pts.length - 1];
-  return (
-    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
-      <Polyline points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke={color} strokeWidth={4} strokeLinejoin="round" strokeLinecap="round" />
-      <Circle cx={sx} cy={sy} r={6} fill={start} />
-      <Circle cx={ex} cy={ey} r={6} fill={color} />
-    </Svg>
   );
 }

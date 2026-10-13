@@ -4,12 +4,15 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Chip, Field, Screen, SectionLabel, Segmented, StepStrip, Title, ToggleRow } from '../../src/ui';
 import { useTheme } from '../../src/theme';
-import { HR_OPTIONS, loadSettings, loadWorkouts, saveSettings } from '../../src/storage';
-import { Plan, RunMode, Settings, Workout } from '../../src/types';
+import { HR_OPTIONS, loadPlan, loadRuns, loadSettings, loadWorkouts, saveSettings } from '../../src/storage';
+import { Plan, PlanProgress, RunMode, RunRecord, Settings, Workout } from '../../src/types';
 import { parsePace } from '../../src/format';
 import { estimateMinutes, summarize } from '../../src/intervals';
 import { session, SIM_SPEED } from '../../src/session';
-import { useHr } from '../../src/hooks';
+import { useDataVersion, useHr } from '../../src/hooks';
+import { weekStats } from '../../src/progress';
+import { planById, PlanSession, sessionKey } from '../../src/plans';
+import { PlanSessionCard, WeekGoalCard } from '../../src/progressUi';
 import { connectStrap, disconnectStrap, scanForStraps } from '../../src/heartRate';
 import { personaFor } from '../../src/coach';
 import { voiceFor } from '../../src/speech';
@@ -24,12 +27,17 @@ export default function StartScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
+  const [runs, setRuns] = useState<RunRecord[]>([]);
+  const [progress, setProgress] = useState<PlanProgress | null>(null);
+  const version = useDataVersion();
 
   useFocusEffect(useCallback(() => {
     let alive = true;
-    Promise.all([loadSettings(), loadWorkouts()]).then(([st, w]) => { if (alive) { setS(st); setWorkouts(w); } });
+    Promise.all([loadSettings(), loadWorkouts(), loadRuns(), loadPlan()]).then(([st, w, r, pl]) => {
+      if (alive) { setS(st); setWorkouts(w); setRuns(r); setProgress(pl); }
+    });
     return () => { alive = false; };
-  }, []));
+  }, [version]));
 
   if (!s) return <Screen>{null}</Screen>;
 
@@ -40,24 +48,30 @@ export default function StartScreen() {
     setError('');
   };
   const workout = workouts.find((w) => w.id === s.workoutId) ?? workouts[0] ?? null;
+  const week = weekStats(runs, s.weeklyGoalKm);
+  const activePlan = progress ? planById(progress.planId) : null;
+  const nextSession = activePlan ? activePlan.sessions.find((x) => !progress!.done[x.id]) ?? null : null;
 
-  async function start() {
+  /** Starts a run from the form, or a training plan session when `ps` is given. */
+  async function start(ps?: PlanSession) {
     if (!s) return;
-    const goalKm = parseFloat(s.goalKm.replace(',', '.'));
-    const target = s.targetPace.trim() ? parsePace(s.targetPace) : null;
-    if (s.mode === 'distance' && !(goalKm >= 0.2 && goalKm <= 200)) { setError('Enter a distance between 0.2 and 200 km.'); return; }
-    if (s.targetPace.trim() && !(target && target >= 150 && target <= 1200)) { setError('Write target pace as minutes:seconds per km, for example 6:00.'); return; }
-    if (s.mode === 'intervals' && !workout) { setError('Choose an interval workout first.'); return; }
+    const mode: RunMode = ps ? (ps.kind === 'workout' ? 'intervals' : 'distance') : s.mode;
+    const goalKm = ps?.km ?? parseFloat(s.goalKm.replace(',', '.'));
+    const target = ps ? ps.targetPace ?? null : s.targetPace.trim() ? parsePace(s.targetPace) : null;
+    const chosen = ps?.workout ?? workout;
+    if (mode === 'distance' && !(goalKm >= 0.2 && goalKm <= 200)) { setError('Enter a distance between 0.2 and 200 km.'); return; }
+    if (!ps && s.targetPace.trim() && !(target && target >= 150 && target <= 1200)) { setError('Write target pace as minutes:seconds per km, for example 6:00.'); return; }
+    if (mode === 'intervals' && !chosen) { setError('Choose an interval workout first.'); return; }
     const maxHr = parseInt(s.maxHr, 10);
     const persona = personaFor(s.coach);
     setStarting(true);
     const voice = await voiceFor(persona, s.voiceId, s.voiceRate);
     const plan: Plan = {
-      mode: s.mode,
-      goalMeters: s.mode === 'distance' ? goalKm * 1000 : 0,
+      mode,
+      goalMeters: mode === 'distance' ? goalKm * 1000 : 0,
       targetPace: target,
-      splitEvery: s.mode === 'distance' ? s.splitEvery : 1000,
-      workout: s.mode === 'intervals' ? workout : null,
+      splitEvery: mode === 'distance' ? s.splitEvery : 1000,
+      workout: mode === 'intervals' ? chosen : null,
       voice: s.voice,
       maxHr: maxHr >= 120 && maxHr <= 230 ? maxHr : 190,
       simulate: s.simulate,
@@ -67,6 +81,8 @@ export default function StartScreen() {
       voicePitch: voice.pitch,
       hrEvery: s.hrEvery,
       duckMusic: s.duckMusic,
+      weeklyGoalKm: s.weeklyGoalKm,
+      ...(ps && activePlan ? { planSession: sessionKey(activePlan.id, ps), planLabel: `${activePlan.name}. ${ps.title}.` } : {}),
     };
     const res = await session.start(plan);
     setStarting(false);
@@ -77,6 +93,24 @@ export default function StartScreen() {
   return (
     <Screen>
       <Title sub="Pick a run and Pacer will coach you through it.">Ready to run?</Title>
+
+      <WeekGoalCard w={week} />
+
+      {activePlan ? (
+        <PlanSessionCard plan={activePlan} next={nextSession} doneCount={Object.keys(progress!.done).length} starting={starting}
+          onStart={() => nextSession && start(nextSession)} onOpen={() => router.push('/plans')} />
+      ) : (
+        <Pressable onPress={() => router.push('/plans')} accessibilityRole="button">
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="school-outline" size={24} color={t.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontWeight: '700', fontSize: 16 }}>Training plans</Text>
+              <Text style={{ color: t.muted }}>Couch to 5K, first 10K, sub-30 5K, half marathon</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={t.muted} />
+          </Card>
+        </Pressable>
+      )}
 
       <Segmented<RunMode>
         options={[{ label: 'Distance run', value: 'distance' }, { label: 'Intervals', value: 'intervals' }]}
@@ -163,7 +197,7 @@ export default function StartScreen() {
       </Card>
 
       {error ? <Text style={{ color: t.danger, marginBottom: 12, fontWeight: '600' }}>{error}</Text> : null}
-      <Button label={starting ? 'Starting…' : s.mode === 'intervals' ? 'Start workout' : 'Start run'} onPress={start} disabled={starting} />
+      <Button label={starting ? 'Starting…' : 'Start run'} onPress={() => start()} disabled={starting} />
     </Screen>
   );
 }

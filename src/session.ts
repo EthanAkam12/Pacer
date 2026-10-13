@@ -4,16 +4,25 @@ import { cap, haversine, sayDist, sayPace, sayTime, uid } from './format';
 import { expandWorkout, KIND_NAME, stepLabel, stepSpoken } from './intervals';
 import { configureSpeech, speak } from './speech';
 import { hrStore } from './heartRate';
-import { loadRuns, saveRun } from './storage';
+import { loadPlan, loadRuns, savePlan, saveRun } from './storage';
 import { COACHES, CoachLines } from './coach';
 import { bestEfforts, newPbs, PB_DISTANCES } from './records';
 import { allRanks, RANKED, rankFor } from './ranks';
+import { ACHIEVEMENTS, earned } from './progress';
 import { startTracking, stopTracking } from './tracking';
 
 /** Practice mode runs the clock this many times faster than real time. */
 export const SIM_SPEED = 5;
 
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+/** Picks a version of a line, avoiding the one used last time for the same cue where possible. */
+const lastPick = new Map<string[], string>();
+const vary = (options: string[]) => {
+  const fresh = options.length > 1 ? options.filter((o) => o !== lastPick.get(options)) : options;
+  const o = pick(fresh.length ? fresh : options);
+  lastPick.set(options, o);
+  return o;
+};
 /** Joins sentences, dropping any a coach leaves empty. */
 const join = (...parts: string[]) => parts.filter((x) => x.trim()).join(' ');
 const mean = (a: number[]) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null);
@@ -115,10 +124,11 @@ class RunSession {
 
     if (plan.mode === 'intervals' && plan.workout) {
       this.steps = expandWorkout(plan.workout);
-      this.say(`Starting ${plan.workout.name}.`, true);
+      this.say(vary(this.lines.workoutStart(plan.planLabel?.replace(/\.$/, '') ?? plan.workout.name)), true);
       this.announceStep(null);
     } else {
-      this.say(join(`Run started. ${sayDist(plan.goalMeters)}${plan.targetPace ? `, target pace ${sayPace(plan.targetPace)}` : ''}.`, this.lines.letsGo), true);
+      const what = `${cap(sayDist(plan.goalMeters))}${plan.targetPace ? `, target pace ${sayPace(plan.targetPace)}` : ''}`;
+      this.say(join(plan.planLabel ?? '', vary(this.lines.start(what))), true);
     }
 
     this.timer = setInterval(() => this.tick(true), 1000);
@@ -130,7 +140,7 @@ class RunSession {
     if (this.phase !== 'running') return;
     this.acc += this.now() - this.segStart;
     this.phase = 'paused';
-    this.say(this.lines.paused, true);
+    this.say(vary(this.lines.paused), true);
     this.emit();
   }
 
@@ -141,7 +151,7 @@ class RunSession {
     this.lastPos = null; // don't count distance moved while paused
     this.samples = [];
     this.slowSince = null;
-    this.say(this.lines.resumed, true);
+    this.say(vary(this.lines.resumed), true);
     this.emit();
   }
 
@@ -165,11 +175,11 @@ class RunSession {
 
     const avg = this.dist > 50 ? t / (this.dist / 1000) : 0;
     if (reached && p.mode === 'intervals') {
-      this.say(join(`Workout complete! ${sayDist(this.dist)} in ${sayTime(t)}.`, this.lines.workoutDone), true);
+      this.say(vary(this.lines.workoutDone(sayDist(this.dist), sayTime(t))), true);
     } else if (reached) {
-      this.say(join(`Finish line! ${sayDist(p.goalMeters)} in ${sayTime(t)}.${avg ? ` Average pace ${sayPace(avg)}.` : ''}`, this.lines.finishCheer), true);
+      this.say(vary(this.lines.finish(sayDist(p.goalMeters), sayTime(t), avg ? sayPace(avg) : null)), true);
     } else {
-      this.say(`Run finished. ${sayDist(this.dist)} in ${sayTime(t)}.`, true);
+      this.say(vary(this.lines.endedEarly(sayDist(this.dist), sayTime(t))), true);
     }
 
     let recordId: string | null = null;
@@ -180,7 +190,7 @@ class RunSession {
       const earlier = await loadRuns().then((rs) => rs.filter((r) => r.simulated === p.simulate)).catch(() => null);
       const pbs = earlier ? newPbs(bests, earlier) : [];
       const top = [...PB_DISTANCES].reverse().find((d) => pbs.includes(d.key));
-      if (top) this.say(this.lines.pb(top.spoken, sayTime(bests[top.key])), true);
+      if (top) this.say(vary(this.lines.pb(top.spoken, sayTime(bests[top.key]))), true);
       const record: RunRecord = {
         id: uid(),
         startedAt: new Date(this.startedAt).toISOString(),
@@ -198,6 +208,7 @@ class RunSession {
         simulated: p.simulate,
         bests,
         pbs,
+        ...(p.planSession && reached ? { planSession: p.planSession } : {}),
       };
       try { await saveRun(record); recordId = record.id; } catch { recordId = null; }
       if (earlier && recordId) {
@@ -207,10 +218,20 @@ class RunSession {
         const was = allRanks(earlier), now = allRanks(all);
         const up = [...RANKED].reverse().find((d) => now[d.key].level > was[d.key].level);
         if (after.level > before.level) {
-          this.say(before.step ? `You've ranked up to ${after.step!.spoken} overall!` : `You've earned your first rank: ${after.step!.spoken}!`, true);
+          this.say(vary(this.lines.rankUp(before.step ? `${after.step!.spoken} overall` : after.step!.spoken)), true);
         } else if (up) {
-          this.say(`Your ${up.long} rank is now ${now[up.key].step!.spoken}!`, true);
+          this.say(vary(this.lines.rankUp(`${now[up.key].step!.spoken} for the ${up.long}`)), true);
         }
+        // New achievements, at most two so the finish doesn't drag on.
+        const had = earned(earlier, p.weeklyGoalKm), has = earned(all, p.weeklyGoalKm);
+        ACHIEVEMENTS.filter((a) => has.has(a.id) && !had.has(a.id)).slice(0, 2)
+          .forEach((a) => this.say(vary(this.lines.achievement(a.title)), true));
+      }
+      // Tick off the training plan session.
+      if (recordId && reached && p.planSession && !p.simulate) {
+        const [planId, sessionId] = p.planSession.split(':');
+        const progress = await loadPlan().catch(() => null);
+        if (progress?.planId === planId) await savePlan({ ...progress, done: { ...progress.done, [sessionId]: recordId } }).catch(() => {});
       }
     }
     this.recordId = recordId;
@@ -375,14 +396,14 @@ class RunSession {
     const h = this.liveHr();
     if (h && h > p.maxHr * 0.93 && t - this.lastHrWarn > 90) {
       this.lastHrWarn = t;
-      this.say(join(`Heart rate is ${h}.`, this.lines.hrTip || 'That is very high.'), true);
+      this.say(vary(this.lines.hrHigh(h)), true);
     }
 
     this.checkHrUpdate(t);
 
     if (running && this.lines.encourage.length && t - this.lastMotivate > 240 && t - this.lastSpoke > 60 && this.dist > 200) {
       this.lastMotivate = t;
-      this.say(pick(this.lines.encourage), false);
+      this.say(vary(this.lines.encourage), false);
     }
   }
 
@@ -393,15 +414,16 @@ class RunSession {
       const hr = mean(this.splitHr);
       this.splits.push({ distance: this.nextSplit, time: st, pace, hr });
       if (p.mode === 'distance') {
-        let msg = `${cap(sayDist(this.nextSplit))} done. That split was ${sayPace(pace)}. ${cap(sayDist(p.goalMeters - this.nextSplit))} to go.`;
+        let msg = vary(this.lines.split(sayDist(this.nextSplit), sayPace(pace), sayDist(p.goalMeters - this.nextSplit)));
+        msg = cap(msg);
         if (p.targetPace) {
           const diff = Math.round((this.nextSplit / 1000) * p.targetPace - t);
-          msg = join(msg, Math.abs(diff) < 5 ? this.lines.onTarget
-            : diff > 0 ? `You're ${sayTime(diff)} ahead of target.`
-            : join(`You're ${sayTime(-diff)} behind target.`, this.lines.behindTip));
+          msg = join(msg, Math.abs(diff) < 5 ? vary(this.lines.onTarget)
+            : diff > 0 ? vary(this.lines.ahead(sayTime(diff)))
+            : vary(this.lines.behind(sayTime(-diff))));
         }
         if (hr && this.hrDueWithSplit()) msg = join(msg, this.hrLine(hr));
-        if (!this.flags.has('half') && Math.abs(this.nextSplit - p.goalMeters / 2) < 1) { this.flags.add('half'); msg = join(msg, this.lines.halfway); }
+        if (!this.flags.has('half') && Math.abs(this.nextSplit - p.goalMeters / 2) < 1) { this.flags.add('half'); msg = join(msg, vary(this.lines.halfway)); }
         this.say(msg, true);
       }
       this.lastSplitT = t; this.lastSplitD = this.nextSplit; this.splitHr = [];
@@ -440,9 +462,9 @@ class RunSession {
   private checkFinishLine() {
     const p = this.plan!;
     const left = p.goalMeters - this.dist;
-    if (!this.flags.has('half') && this.dist >= p.goalMeters / 2) { this.flags.add('half'); this.say(this.lines.halfway, true); }
-    if (p.goalMeters > 800 && left <= 400 && !this.flags.has('400')) { this.flags.add('400'); this.say(this.lines.togo400, true); }
-    if (left <= 100 && !this.flags.has('100')) { this.flags.add('100'); this.say(this.lines.togo100, true); }
+    if (!this.flags.has('half') && this.dist >= p.goalMeters / 2) { this.flags.add('half'); this.say(vary(this.lines.halfway), true); }
+    if (p.goalMeters > 800 && left <= 400 && !this.flags.has('400')) { this.flags.add('400'); this.say(vary(this.lines.togo400), true); }
+    if (left <= 100 && !this.flags.has('100')) { this.flags.add('100'); this.say(vary(this.lines.togo100), true); }
     if (this.dist >= p.goalMeters) this.finish(true);
   }
 
@@ -497,7 +519,7 @@ class RunSession {
       if (prev.hr && this.plan!.hrEvery === 'split') msg += `${this.hrLine(prev.hr)} `;
     }
     const which = this.stepIdx === n - 1 ? 'Last one.' : `Interval ${this.stepIdx + 1} of ${n}.`;
-    this.say(join(`${msg}${which} ${cap(stepSpoken(step))}.`, this.lines.cue[step.kind]), true);
+    this.say(join(`${msg}${which} ${cap(stepSpoken(step))}.`, vary(this.lines.cue[step.kind])), true);
   }
 
   private checkSlowing(t: number) {
@@ -518,7 +540,7 @@ class RunSession {
       this.slowNow = true;
       if (p.mode === 'distance' && t - this.lastSlowWarn > 90) {
         this.lastSlowWarn = t;
-        this.say(this.lines.stopped, true);
+        this.say(vary(this.lines.stopped), true);
       }
       return;
     }
@@ -529,17 +551,17 @@ class RunSession {
       if (this.slowSince === null) this.slowSince = t;
       if (t - this.slowSince >= 15 && t - this.lastSlowWarn > 60) {
         this.lastSlowWarn = this.warnedAt = t;
-        const vs = p.targetPace ? `your target is ${sayPace(p.targetPace)}`
+        const vs = p.targetPace ? `your target's ${sayPace(p.targetPace)}`
           : p.mode === 'intervals' ? `you started this rep at ${sayPace(ref)}`
           : `your average is ${sayPace(ref)}`;
-        this.say(join(`You're slowing down. You're at ${sayPace(cur)}, ${vs}.`, this.lines.slowTip), true);
+        this.say(vary(this.lines.slow(sayPace(cur), vs)), true);
       }
     } else {
       this.slowNow = false;
       this.slowSince = null;
       if (t - this.warnedAt < 150 && cur <= ref * 1.02) {
         this.warnedAt = -999;
-        this.say(this.lines.backOnPace, true);
+        this.say(vary(this.lines.backOnPace), true);
       }
     }
   }

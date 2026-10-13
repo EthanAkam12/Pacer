@@ -83,7 +83,8 @@
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": true
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "owner": "ethanakam",
     "extra": {

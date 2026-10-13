@@ -40,15 +40,19 @@ function summary(runs: RunRecord[]) {
   const bests: Record<string, number> = {};
   for (const pb of personalBests(real)) bests[`best${pb.key}`] = pb.time;
   const rank = rankFor(real);
+  // The last few runs, for friends to see. Only a summary: no route or heart rate.
+  const recent = real.slice(0, 5).map((r) => ({ km: round(r.distance / 1000), sec: Math.round(r.duration), at: r.startedAt, title: r.title.slice(0, 40) }));
   return {
     rank,
+    recent,
+    runs: real.length,
     totalKm: round(real.reduce((a, r) => a + r.distance, 0) / 1000),
     weekKm: round(real.filter((r) => Date.parse(r.startedAt) >= start).reduce((a, r) => a + r.distance, 0) / 1000),
     bests,
   };
 }
 
-const ready = () => (db && auth?.currentUser?.emailVerified ? { db, uid: auth.currentUser.uid, name: auth.currentUser.displayName ?? '' } : null);
+export const ready = () => (db && auth?.currentUser?.emailVerified ? { db, uid: auth.currentUser.uid, name: auth.currentUser.displayName ?? '' } : null);
 
 /** Uploads this runner's latest numbers, or removes them if they've opted out. Safe to call often. */
 export async function syncMyEntry(): Promise<void> {
@@ -56,10 +60,11 @@ export async function syncMyEntry(): Promise<void> {
   if (!r) return;
   const [s, runs] = await Promise.all([loadSettings(), loadRuns()]);
   if (!s.leaderboards || !r.name) { await removeMyEntry(); return; }
-  const { rank, totalKm, weekKm, bests } = summary(runs);
+  const { rank, totalKm, weekKm, bests, recent, runs: count } = summary(runs);
   const name = r.name;
   await setDoc(doc(r.db, 'profiles', r.uid), {
-    name, tier: rank.id, totalKm, ...bests, ...(rank.score ? { rankScore: rank.score } : {}), updatedAt: serverTimestamp(),
+    name, tier: rank.id, totalKm, ...bests, ...(rank.score ? { rankScore: rank.score } : {}),
+    weekKm, weekKey: weekKey(), runs: count, recent, updatedAt: serverTimestamp(),
   });
   const entry = doc(r.db, 'weeks', weekKey(), 'entries', r.uid);
   if (weekKm > 0) await setDoc(entry, { name, tier: rank.id, km: weekKm, updatedAt: serverTimestamp() });

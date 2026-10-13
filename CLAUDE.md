@@ -50,27 +50,37 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 | `app/(tabs)/settings.tsx` | Account (email, change password via reset email, sign out, delete account with password), leaderboards (username, show me on leaderboards), appearance (System/Light/Dark and 8 colour themes), coach and "lower music while the coach talks", max heart rate, heart-rate updates, about |
 | `app/(tabs)/_layout.tsx` | Bottom tabs: Run, Intervals, History, Ranks, Settings (Ionicons) |
 | `app/(tabs)/ranks.tsx` | Distance picker (Overall, Mile, 5K, 10K, Half, Marathon). Rank card (badge, best time, progress and target for the next division; Overall also shows all five distance badges), "how ranks work" ladder for that distance, leaderboard (Overall: this week, all time, top ranked; distance: fastest times with each runner's badge for that distance) with your own position |
-| `app/(tabs)/index.tsx` | Run setup: distance or intervals, distance chips, target pace, split frequency, heart-rate strap and heart-rate updates, coach card, voice and practice toggles, Start. Resolves the coach's voice before starting. |
+| `app/(tabs)/index.tsx` | Weekly goal ring and streak (`WeekGoalCard`), training plan "next session" card or a link to plans, then run setup: distance or intervals, distance chips, target pace, split frequency, heart-rate strap and heart-rate updates, coach card, voice and practice toggles, Start. Resolves the coach's voice before starting. |
 | `app/(tabs)/workouts.tsx` | Interval workout list, "Use for next run", Edit, Build new |
-| `app/(tabs)/history.tsx` | Last 7 days and all-time totals, personal bests, distance-per-week chart, average-pace trend chart, list of runs (practice runs are left out of totals, PBs and charts) |
+| `app/(tabs)/history.tsx` | Achievements link, last 7 days and all-time totals, personal bests, distance-per-week chart, average-pace trend chart, list of runs (practice runs are left out of totals, PBs and charts) |
 | `app/run.tsx` | Live run screen in the chosen theme (gradient background): smoothed current pace, stats, progress lane or interval countdown that glide between updates (Animated), pulsing live dot, coach bubble that fades in on each new line, Pause/Resume, Finish. Keeps the screen awake (expo-keep-awake). |
-| `app/run-detail/[id].tsx` | Run details: stats, route sketch (react-native-svg), best efforts with PB trophies, pace-per-split chart, interval results, splits with fastest highlighted, delete |
+| `app/run-detail/[id].tsx` | Run details: Share button, plan tag, stats, route map (`src/map.tsx`), best efforts with PB trophies, pace-per-split chart, interval results, splits with fastest highlighted, delete |
 | `app/coach.tsx` | Pick a named coach (shows traits, a sample line and the phone voice it will use), speaking speed, optional voice override, tip for downloading better voices. Tapping plays a sample. |
+| `app/plans.tsx` | Training plans: active plan with week-by-week checklist and Stop, other plans to start (switching clears progress) |
+| `app/achievements.tsx` | Grid of all achievements, unlocked first |
+| `app/friends.tsx`, `app/runner/[uid].tsx` | Find a runner by exact username and follow; list of people you follow with latest run and this week's km; a runner's profile (rank, totals, best times with badges, recent runs, follow/unfollow) |
+| `app/share/[id].tsx` | Shareable run card (gradient in the theme accent, route art, distance/time/pace, rank and PB chips), captured with react-native-view-shot and shared with expo-sharing |
 | `app/workout/edit.tsx` | Workout builder: name, warm-up, steps (run/walk/rest, by time or distance), repeats, cool-down, preview strip |
 | `src/session.ts` | **Coaching engine.** A singleton `session` handles distance, pace, splits, intervals and everything the coach says. Includes practice-mode simulation. |
 | `src/tracking.ts` | GPS: background updates via TaskManager, with `watchPositionAsync` as the fallback |
 | `src/heartRate.ts` | BLE heart-rate strap (service 0x180D, characteristic 0x2A37). Loaded lazily so Expo Go doesn't crash. |
 | `src/speech.ts` | expo-speech wrapper. Ducks music around speech (`src/ducking.ts`) unless turned off. Voice listing gives up after 1.5 s so a silent speech engine can't block starting a run. Important lines queue; others are skipped (and `speak` returns false) if the coach is already talking. Lists English voices, filters out Apple's novelty/robotic voices, works out gender and quality, and picks the best voice for a coach (`bestVoiceFor`, `voiceFor`). |
-| `src/coach.ts` | Phrasebooks per style (friendly, tough, calm, cheeky, minimal) and the named coaches (`PERSONAS`: Laura, Dave, Maya, Jack, Sam) with traits, voice gender/accents, rate and pitch. `personaFor` also maps old style names. |
+| `src/coach.ts` | Phrasebooks per style (friendly, tough, calm, cheeky, wise, technical, minimal): every cue has several conversational versions (functions of the spoken numbers), and the engine's `vary()` avoids repeating the last one. Named coaches (`PERSONAS`: Laura, Dave, Maya, Jack, Charlie, Kai, Sam) with traits, voice gender/accents, rate and pitch. `personaFor` also maps old style names. |
 | `src/firebase.ts` | Firebase app + Auth with AsyncStorage persistence. Config from `EXPO_PUBLIC_FIREBASE_*` or the values in the file; `authConfigured` is false until set. |
 | `src/auth.tsx` | `AuthProvider`/`useAuth` (incl. `username`, `setUsername`), unique usernames (Firestore `usernames/{lowercase}` → uid, saved as the account's displayName; falls back to no uniqueness check if Firestore isn't set up), sign up (sends verification email), sign in, resend, reset password, sign out, delete account (re-authenticates), plain-English error messages |
+| `src/cloud.ts` | Backup: runs at `users/{uid}/runs/{id}`, workouts + plan progress at `users/{uid}/data/state`. `startCloud(uid)` (called from AuthProvider) does a two-way merge and installs storage hooks that upload on save/delete |
+| `src/progress.ts` | `weekStats` (this week's km vs goal, goal streak in weeks) and `ACHIEVEMENTS` (28) with `earned(runs, goalKm)` |
+| `src/progressUi.tsx` | `GoalRing`, `WeekGoalCard`, `PlanSessionCard` |
+| `src/plans.ts` | Training plans (`PLANS`: c25k (NHS Couch to 5K, 9 wk), 10k (8 wk), sub30 (6 wk), half (12 wk)); sessions are interval workouts or distance runs, ids `w3s2`, keyed on runs as `c25k:w3s2` |
+| `src/friends.ts` | Follow by username (`usernames` → uid), `users/{uid}/following/{them}`, public profiles (`profiles/{uid}` now also has weekKm, weekKey, runs, recent[5]) |
+| `src/map.tsx` | `RunMap`: static map from CARTO/OpenStreetMap raster tiles (light/dark to match theme) placed by Web Mercator maths, route drawn with SVG on top. No SDK or API key |
 | `src/ranks.ts` | Speed-based ranks per distance (`RANKED`: mile, 5K, 10K, half, marathon): Bronze, Silver, Gold, Emerald, Platinum, Diamond (each III/II/I) and Elite, from the best time at that distance in the last year. Thresholds are a 5K table scaled by Riegel (exponent 1.06) and rounded. Overall rank = best distance rank. `ladder`, `stepFor`, `distanceRank`, `allRanks`, `rankFor` |
 | `src/badge.tsx` | `RankBadge`: SVG shield in the tier's colours with the division numeral |
 | `src/leaderboard.ts` | Firestore leaderboards: `profiles/{uid}` (name = username, tier = overall rank, rankScore, totalKm, best1000…best42195) and `weeks/{monday}/entries/{uid}` (name, tier, km). Boards: week, total, rank (rankScore), best{key}. `syncMyEntry` uploads from local runs (practice excluded), `fetchBoard` returns the top 50 plus your own position (count query), `removeMyEntry` |
 | `firestore.rules` | Firestore security rules (own entry only, verified email, field and plausibility checks). Pasted into the Firebase console by hand. |
 | `src/records.ts` | Best efforts (fastest 1 km, 1 mile, 5 km, 10 km, half, marathon within any run), personal bests, new-PB detection |
 | `src/charts.tsx` | Bar and line charts (react-native-svg). Tap or drag to read a value. |
-| `src/storage.ts` | AsyncStorage: runs, workouts (seeded with presets) and settings |
+| `src/storage.ts` | AsyncStorage. Runs, workouts and plan progress are per account (`pacer.runs.v1.<uid>`; legacy un-suffixed data moves to the first account that signs in); settings are per phone. Hooks for cloud upload, `onDataChanged`/`useDataVersion` to refresh screens after a cloud merge |
 | `src/intervals.ts` | Presets, labels, spoken step names, time estimates |
 | `src/format.ts` | Pace, time and date formatting, spoken forms, parsing, haversine distance |
 | `src/theme.ts` | 8 colour themes (`THEMES`, default `ocean`): each defines dark bg/accent/walk and light bg/accent/walk; cards, lines, muted text, run-screen colours (`t.run`) and text-on-accent are mixed from those. Choice (`themeId`, `appearance`) lives in a small store (`setThemePrefs`, loaded from Settings in `app/_layout.tsx`); `useTheme()` re-renders on change. |
@@ -100,6 +110,8 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **Pace wording:** said the way runners say it, e.g. "5 30 per kilometre", "5 oh 5 per kilometre".
 - **Heart-rate updates:** `plan.hrEvery` is `off`, `split` (with split messages, and with rep results in intervals), `t30`/`t60`/`t120`/`t300` (seconds) or `d500`/`d1000` (metres; merged into the split message when they land together). Lines say how hard it is ("Heart rate 152, steady") from the share of max HR. The high heart-rate warning always runs.
 - **Personal bests:** the session keeps a distance-over-time track for the whole run. At the finish it works out best efforts, compares them with earlier runs (practice runs only compete with practice runs) and announces the longest new PB.
+- **Training plans:** a plan session run carries `planSession`/`planLabel`; the coach introduces it, and finishing it (reached, not practice) ticks it off in plan progress.
+- **Achievements:** at the finish, newly earned achievements (at most two) are announced.
 - **Rank-up:** at the finish, ranks before and after the run are compared (practice runs against practice runs). The coach announces an overall rank-up (or first rank), otherwise the longest distance whose rank went up.
 - **Saving:** runs of 30 seconds or more, or 50 m or more, are saved with a route thinned to about 400 points, plus `bests` and `pbs`.
 
@@ -110,9 +122,11 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 - **Not yet tested on a real outdoor run:** GPS accuracy, speech while backgrounded, and battery use.
 - **Accounts:** live. Firebase project `pacer-82fc9` (Email/Password sign-in enabled); config is in `src/firebase.ts`. Not yet tested end to end on a phone. Runs are still stored only on the phone, not per account.
 - **Leaderboards:** code is done; Firestore must be created and `firestore.rules` published (`docs/LEADERBOARDS.md`). Entries are uploaded after each real run and when the Ranks tab opens. Times come from the phone, so a determined cheat could still post fake (but plausible) numbers. Usernames are unique but not filtered for bad words.
+- **Needs a new development build** for the share card (react-native-view-shot, expo-sharing). Everything else from the last batch is JavaScript only.
+- **Firestore rules** must be re-published after changes to `firestore.rules` (backups and following live under `users/{uid}`).
 - **Music ducking:** built on expo-audio's audio focus (Android) and duckOthers audio session (iOS); not yet tested with real music on a phone.
 - **Voices:** on-device text-to-speech only. More natural options would need a cloud voice service (paid) behind a server.
 - **Ideas:**
   - Apple Watch / Health Connect heart rate
   - Map view (react-native-maps)
-  - Cloud sync and accounts
+  - Cloud voices (paid TTS behind a server) for truly human-sounding coaches

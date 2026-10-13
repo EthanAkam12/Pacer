@@ -6,6 +6,8 @@ import {
 import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, authConfigured, db } from './firebase';
 import { removeMyEntry } from './leaderboard';
+import { setStorageUser } from './storage';
+import { startCloud } from './cloud';
 
 interface AuthState {
   loading: boolean;
@@ -31,11 +33,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!auth) return;
-    return onAuthStateChanged(auth, (u) => {
+    return onAuthStateChanged(auth, async (u) => {
+      // Point storage at this account's runs before any screen loads them.
+      await setStorageUser(u?.uid ?? null).catch(() => {});
       setUser(u);
       setVerified(!!u?.emailVerified);
       setName(u?.displayName || null);
       setLoading(false);
+      startCloud(u?.emailVerified ? u.uid : null);
     });
   }, []);
 
@@ -45,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await u.reload();
     await u.getIdToken(true);
     setVerified(u.emailVerified);
+    if (u.emailVerified) startCloud(u.uid);
     return u.emailVerified;
   };
 

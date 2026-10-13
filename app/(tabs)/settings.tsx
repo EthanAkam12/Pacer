@@ -108,6 +108,16 @@ export default function SettingsScreen() {
         <ToggleRow label="Show me on leaderboards" hint="Turn off to remove your name, rank and times from the leaderboards." value={s.leaderboards} onChange={(leaderboards) => updateBoard({ leaderboards })} />
       </Card>
 
+      <SectionLabel>Weekly goal</SectionLabel>
+      <Card>
+        <Text style={{ color: t.muted, marginBottom: 10 }}>How far you want to run each week. Hit it week after week to build a streak.</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {[5, 10, 15, 20, 30, 40, 50, 70].map((km) => (
+            <Chip key={km} small label={`${km} km`} active={s.weeklyGoalKm === km} onPress={() => update({ weeklyGoalKm: km })} />
+          ))}
+        </View>
+      </Card>
+
       <SectionLabel>Appearance</SectionLabel>
       <Card>
         <Segmented<Appearance>
