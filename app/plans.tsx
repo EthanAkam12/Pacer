@@ -54,12 +54,12 @@ export default function PlansScreen() {
   return (
     <Screen inset={false}>
       {active && progress ? (
-        <ActivePlan plan={active} progress={progress} settings={settings} onSchedule={() => router.push('/schedule')} onStop={stop} />
+        <ActivePlan plan={active} progress={progress} settings={settings} onSchedule={() => router.push('/schedule')} onGuide={() => router.push(`/plan/${active.id}`)} onStop={stop} />
       ) : null}
 
       <SectionLabel>{active ? 'Switch to a different plan' : 'Choose a plan'}</SectionLabel>
       {others.map((p) => (
-        <Pressable key={p.id} onPress={() => choose(p.id)} accessibilityRole="button">
+        <Pressable key={p.id} onPress={() => router.push(`/plan/${p.id}`)} accessibilityRole="button">
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ flex: 1, color: t.text, fontSize: 18, fontWeight: '800' }}>{p.name}</Text>
@@ -67,7 +67,10 @@ export default function PlansScreen() {
             </View>
             <Text style={{ color: t.muted, marginTop: 4, lineHeight: 20 }}>{p.blurb}</Text>
             <Text style={{ color: t.text, marginTop: 8, fontWeight: '600' }}>{p.weeks} weeks · {p.perWeek} runs a week</Text>
-            <Text style={{ color: t.accent, marginTop: 8, fontWeight: '700' }}>{active ? 'Switch to this plan →' : 'Start this plan →'}</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <Button small variant="secondary" label="Read the guide" onPress={() => router.push(`/plan/${p.id}`)} style={{ flex: 1 }} />
+              <Button small label={active ? 'Switch' : 'Start'} onPress={() => choose(p.id)} style={{ flex: 1 }} />
+            </View>
           </Card>
         </Pressable>
       ))}
@@ -77,8 +80,8 @@ export default function PlansScreen() {
   );
 }
 
-function ActivePlan({ plan, progress, settings, onSchedule, onStop }: {
-  plan: TrainingPlan; progress: PlanProgress; settings: Settings; onSchedule: () => void; onStop: () => void;
+function ActivePlan({ plan, progress, settings, onSchedule, onGuide, onStop }: {
+  plan: TrainingPlan; progress: PlanProgress; settings: Settings; onSchedule: () => void; onGuide: () => void; onStop: () => void;
 }) {
   const t = useTheme();
   const done = Object.keys(progress.done).length;
@@ -100,6 +103,7 @@ function ActivePlan({ plan, progress, settings, onSchedule, onStop }: {
           <Text style={{ flex: 1, color: t.text }}>Sessions on <Text style={{ fontWeight: '800' }}>{dayList(days)}</Text></Text>
           <Text style={{ color: t.accent, fontWeight: '700' }}>Change</Text>
         </Pressable>
+        <Button variant="secondary" label="How this plan works" onPress={onGuide} style={{ marginTop: 10 }} />
         <Button variant="danger" label="Stop this plan" onPress={onStop} style={{ marginTop: 10 }} />
       </Card>
     </>
