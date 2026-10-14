@@ -8,7 +8,7 @@ The owner is Ethan, who is new to coding. He works on Windows 11 with Node v26 a
 
 ## Current status
 
-**Working:** the app runs on Ethan's phone in Expo Go. The Run tab, Practice mode, the live run screen, the voice coach, History and Intervals all load.
+**Working:** the standalone preview build (with expo-updates) is installed on Ethan's Android phone and opens without the PC; new JavaScript goes out with `npm run publish`. Earlier it ran in Expo Go and the development build. The Run tab, Practice mode, the live run screen, the voice coach, History and Intervals all load.
 
 - **Code:** GitHub `EthanAkam12/Pacer`, branch `claude/transfer-chat-to-code-wcjs0u`. Ethan gets changes with `git pull` (see `docs/GET-THE-CODE.md`).
 - **Project location:** `C:\Users\Ethan\Desktop\pacer-app` (a Git clone). The old `C:\Users\Ethan\Desktop\pacer` folder is a backup from before GitHub.
