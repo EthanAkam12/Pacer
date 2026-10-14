@@ -4,7 +4,8 @@ import { cap, haversine, sayDist, sayPace, sayTime, uid } from './format';
 import { expandWorkout, KIND_NAME, stepLabel, stepSpoken } from './intervals';
 import { configureSpeech, speak } from './speech';
 import { hrStore } from './heartRate';
-import { loadPlan, loadRuns, savePlan, saveRun } from './storage';
+import { loadRuns, saveRun } from './storage';
+import { recordAttempt } from './planAdapt';
 import { COACHES, CoachLines } from './coach';
 import { bestEfforts, newPbs, PB_DISTANCES } from './records';
 import { allRanks, RANKED, rankFor } from './ranks';
@@ -227,12 +228,8 @@ class RunSession {
         ACHIEVEMENTS.filter((a) => has.has(a.id) && !had.has(a.id)).slice(0, 2)
           .forEach((a) => this.say(vary(this.lines.achievement(a.title)), true));
       }
-      // Tick off the training plan session.
-      if (recordId && reached && p.planSession && !p.simulate) {
-        const [planId, sessionId] = p.planSession.split(':');
-        const progress = await loadPlan().catch(() => null);
-        if (progress?.planId === planId) await savePlan({ ...progress, done: { ...progress.done, [sessionId]: recordId } }).catch(() => {});
-      }
+      // Log the training plan attempt, ticking the session off if it was finished.
+      if (recordId && p.planSession && !p.simulate) await recordAttempt(p.planSession, recordId, reached, !!p.planEasier).catch(() => {});
     }
     this.recordId = recordId;
     this.phase = 'finished';
@@ -532,6 +529,7 @@ class RunSession {
   private checkSlowing(t: number) {
     const p = this.plan!;
     const cur = this.currentPace();
+    if (p.gentle) { this.checkWalking(t, cur); return; }
     let ref: number;
     if (p.mode === 'intervals') {
       const st = t - this.stepStartT, sd = this.dist - this.stepStartD;
@@ -570,6 +568,22 @@ class RunSession {
         this.warnedAt = -999;
         this.say(vary(this.lines.backOnPace), true);
       }
+    }
+  }
+
+  /**
+   * Beginner plans: no slowing-down warnings. If the runner has been walking (slower than
+   * 9 minutes per km, or stopped) for 20 seconds when they should be running, the coach says
+   * that's fine, at most every 2 minutes.
+   */
+  private checkWalking(t: number, cur: number) {
+    this.slowNow = false;
+    const walking = cur === Infinity || (isFinite(cur) && cur > 540);
+    if (!walking || t < 60) { this.slowSince = null; return; }
+    if (this.slowSince === null) this.slowSince = t;
+    if (t - this.slowSince >= 20 && t - this.lastSlowWarn > 120) {
+      this.lastSlowWarn = t;
+      this.say(vary(this.lines.walkOk), true);
     }
   }
 

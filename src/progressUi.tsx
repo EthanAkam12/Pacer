@@ -7,6 +7,8 @@ import { Button, Card } from './ui';
 import { WeekStats } from './progress';
 import { PlanSession, TrainingPlan } from './plans';
 import { DAY_SHORT, WeekDay } from './schedule';
+import { PlanProgress, RunRecord } from './types';
+import { acknowledge, breakDays, currentWeek, restartFrom, struggling } from './planAdapt';
 
 /** A ring that fills as this week's distance approaches the goal. */
 export function GoalRing({ value, size = 76, stroke = 9, color, track }: { value: number; size?: number; stroke?: number; color: string; track: string }) {
@@ -82,8 +84,9 @@ export function WeekStrip({ days, onPress }: { days: WeekDay[]; onPress?: () => 
 }
 
 /** "Today's session" from the active training plan, with a button to start it. */
-export function PlanSessionCard({ plan, next, when, doneCount, onStart, onOpen, starting }: {
+export function PlanSessionCard({ plan, next, when, doneCount, onStart, onOpen, starting, onEasier, easierSummary }: {
   plan: TrainingPlan; next: PlanSession | null; when?: string; doneCount: number; onStart: () => void; onOpen: () => void; starting: boolean;
+  onEasier?: () => void; easierSummary?: string;
 }) {
   const t = useTheme();
   const total = plan.sessions.length;
@@ -112,10 +115,52 @@ export function PlanSessionCard({ plan, next, when, doneCount, onStart, onOpen, 
             variant={when && when !== 'today' ? 'secondary' : undefined}
             onPress={onStart} disabled={starting} style={{ marginTop: 12 }}
           />
+          {onEasier ? (
+            <Pressable onPress={onEasier} disabled={starting} accessibilityRole="button" style={{ marginTop: 12 }}>
+              <Text style={{ color: t.accent, fontWeight: '700' }}>Too much today? Do the easier version</Text>
+              {easierSummary ? <Text style={{ color: t.muted, marginTop: 2 }}>{easierSummary}</Text> : null}
+            </Pressable>
+          ) : null}
         </>
       ) : (
         <Text style={{ color: t.text, fontSize: 17, fontWeight: '800' }}>Plan complete! Amazing work. 🎉</Text>
       )}
+    </Card>
+  );
+}
+
+/**
+ * Shown above the plan card when the runner seems to be struggling (two tough sessions in a
+ * row) or is coming back after a break: offers to repeat the week or go back one.
+ */
+export function PlanCheckIn({ plan, progress, runs, onChange }: {
+  plan: TrainingPlan; progress: PlanProgress; runs: RunRecord[]; onChange: (p: PlanProgress) => void;
+}) {
+  const t = useTheme();
+  const tough = struggling(progress);
+  const away = tough ? null : breakDays(plan, progress, runs);
+  if (!tough && away === null) return null;
+  const week = currentWeek(plan, progress);
+  const doneThisWeek = plan.sessions.some((s) => s.week === week && progress.done[s.id]);
+  const act = (p: Promise<PlanProgress | null>) => p.then((next) => { if (next) onChange(next); });
+
+  return (
+    <Card style={{ borderColor: t.accent, borderWidth: 1.5 }}>
+      <Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>
+        {tough ? 'Finding it tough?' : `Welcome back! 👋`}
+      </Text>
+      <Text style={{ color: t.muted, marginTop: 4, lineHeight: 20 }}>
+        {tough
+          ? `Your last two sessions were hard going. That's completely normal, and repeating a week is how lots of people get through ${plan.name}.`
+          : `It's been ${away} days since your last plan session. Your fitness dips a little after a break, so going back a week makes the return easier.`}
+      </Text>
+      <View style={{ gap: 8, marginTop: 12 }}>
+        {tough && doneThisWeek ? <Button label={`Repeat week ${week}`} onPress={() => act(restartFrom(plan, week))} /> : null}
+        {week > 1 ? (
+          <Button variant={tough && doneThisWeek ? 'secondary' : 'primary'} label={`Go back to week ${week - 1}`} onPress={() => act(restartFrom(plan, week - 1))} />
+        ) : null}
+        <Button variant="secondary" label={tough ? 'Keep going as planned' : 'Carry on where I was'} onPress={() => act(acknowledge(plan))} />
+      </View>
     </Card>
   );
 }

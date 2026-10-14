@@ -15,7 +15,11 @@ export interface PlanSession {
   km?: number;
   targetPace?: number; // seconds per km
 }
-export interface TrainingPlan { id: string; name: string; level: string; blurb: string; weeks: number; perWeek: number; sessions: PlanSession[] }
+export interface TrainingPlan {
+  id: string; name: string; level: string; blurb: string; weeks: number; perWeek: number; sessions: PlanSession[];
+  /** Beginner plan: the coach encourages walking breaks instead of warning about slowing down. */
+  gentle?: boolean;
+}
 
 const T = (kind: StepKind, min: number): IntervalStep => ({ kind, measure: 'time', value: Math.round(min * 60) });
 const D = (kind: StepKind, m: number): IntervalStep => ({ kind, measure: 'distance', value: m });
@@ -91,8 +95,8 @@ for (let w = 1; w <= 12; w++) {
 }
 
 export const PLANS: TrainingPlan[] = [
-  { id: 'c25k', name: 'Couch to 5K', level: 'Beginner', blurb: 'From your first steps to running 30 minutes non-stop. Run/walk sessions that build up gently.', weeks: 9, perWeek: 3, sessions: c25k },
-  { id: '10k', name: 'First 10K', level: 'Beginner+', blurb: 'For people who can run 3 km. Easy runs, run/walk reps and a long run that grows to 10 km.', weeks: 8, perWeek: 3, sessions: tenK },
+  { id: 'c25k', name: 'Couch to 5K', level: 'Beginner', blurb: 'From your first steps to running 30 minutes non-stop. Run/walk sessions that build up gently.', weeks: 9, perWeek: 3, sessions: c25k, gentle: true },
+  { id: '10k', name: 'First 10K', level: 'Beginner+', blurb: 'For people who can run 3 km. Easy runs, run/walk reps and a long run that grows to 10 km.', weeks: 8, perWeek: 3, sessions: tenK, gentle: true },
   { id: 'sub30', name: 'Sub-30 5K', level: 'Intermediate', blurb: 'Can run 5 km already? Speed reps and steady runs to get you under 30 minutes.', weeks: 6, perWeek: 3, sessions: sub30 },
   { id: 'half', name: 'First half marathon', level: 'Intermediate', blurb: 'For people who can run 5–8 km. Easy runs, tempo runs and a weekly long run up to 21.1 km.', weeks: 12, perWeek: 3, sessions: half },
 ];

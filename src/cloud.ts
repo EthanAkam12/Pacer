@@ -56,8 +56,10 @@ export async function syncAll() {
     if (extra.length) { await saveWorkouts([...mine, ...extra], true); changed = true; }
     const plan = await loadPlan();
     const theirs = cloud.plan ?? null;
-    // Keep whichever copy of the plan has more sessions finished.
-    if (theirs && (!plan || (plan.planId === theirs.planId && Object.keys(theirs.done).length > Object.keys(plan.done).length))) {
+    // Keep the newest copy of the plan (older saves without a time: the one with more sessions finished).
+    const newer = theirs && plan && (theirs.updatedAt && plan.updatedAt ? theirs.updatedAt > plan.updatedAt
+      : plan.planId === theirs.planId && Object.keys(theirs.done).length > Object.keys(plan.done).length);
+    if (theirs && (!plan || newer)) {
       await savePlan(theirs, true); changed = true;
     }
   }

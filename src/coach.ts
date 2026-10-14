@@ -20,6 +20,8 @@ export interface CoachLines {
   togo100: string[];
   slow: (now: string, ref: string) => string[]; // ref: "your target's 5 30 per kilometre"
   backOnPace: string[];
+  /** Beginner plans: walking when it's a run step is fine. */
+  walkOk: string[];
   stopped: string[];
   hrHigh: (bpm: number) => string[];
   finish: (dist: string, time: string, avg: string | null) => string[];
@@ -53,6 +55,7 @@ export const COACHES: Record<CoachStyle, CoachLines> = {
     togo100: ['100 metres! Sprint to the line!', 'Last 100! Give it everything!'],
     slow: (n, r) => [`You've eased off a bit. You're at ${n}, and ${r}. Drive those arms and pick it back up.`, `Just slowing a touch, you're at ${n}. ${C(r)}. Quick light steps, you can do it.`],
     backOnPace: ["That's it, you're back on pace. Lovely.", 'Yes! Back where you want to be. Hold it there.'],
+    walkOk: ["Walking's completely fine. Catch your breath, and start running again when you're ready.", "Taking a little walk? That's okay. You're still moving, and that's what counts. Jog again when you feel ready."],
     stopped: ["Looks like you've stopped. Tap pause if you need a break, or let's get going again.", "Have you stopped? That's okay. Pause if you need to, otherwise off we go."],
     hrHigh: (h) => [`Your heart rate's ${h}, that's really high. Ease off a touch and slow your breathing.`, `Heart rate ${h}. Let's bring it down a little, nice slow breaths.`],
     finish: (d, t, a) => [`Finish line! ${d} in ${t}.${avgLine(a)} What a run!`, `And that's it! ${d} done in ${t}.${avgLine(a)} I'm so proud of you.`],
@@ -87,6 +90,7 @@ export const COACHES: Record<CoachStyle, CoachLines> = {
     togo100: ['100 metres! Everything!', 'Last 100. Sprint. Go, go, go!'],
     slow: (n, r) => [`You're slowing down. ${n}. ${C(r)}. No excuses. Drive your arms!`, `${n}? That's not it. ${C(r)}. Pick it up!`],
     backOnPace: ['Better. Hold it.', "That's more like it. Stay there."],
+    walkOk: ["Walking. Fine, but only until you've got your breath back. Then we go again.", "Take a moment. Then back to running. You've got this."],
     stopped: ["You've stopped. Pause it or get moving.", "Why have we stopped? Pause, or go."],
     hrHigh: (h) => [`Heart rate ${h}. Back off a touch. Smart, not stupid.`, `${h} beats. Ease it a little. We go hard, not reckless.`],
     finish: (d, t, a) => [`Done. ${d} in ${t}.${avgLine(a)} Good. Now recover properly.`, `Finished. ${d}, ${t}.${avgLine(a)} You earned that one.`],
@@ -120,6 +124,7 @@ export const COACHES: Record<CoachStyle, CoachLines> = {
     togo100: ['100 metres. Bring it home.', 'Last 100. Smooth and strong.'],
     slow: (n, r) => [`You've drifted to ${n}. ${C(r)}. Gently lift your cadence and find your rhythm again.`, `A little slower now, ${n}. ${C(r)}. Soft shoulders, quicker feet.`],
     backOnPace: ["Lovely, you're back on pace.", "There's your rhythm again."],
+    walkOk: ["Walking is perfectly okay. Breathe, relax, and ease back into a jog when your body says yes.", "There's no rush. Walk for a bit, and gently start running again when you're ready."],
     stopped: ["You've stopped moving. Pause whenever you need to.", 'Take a moment if you need it. Tap pause.'],
     hrHigh: (h) => [`Heart rate ${h}. Slow down a little and breathe out fully.`, `${h} beats a minute. Let's soften the pace, and breathe.`],
     finish: (d, t, a) => [`Well done. ${d} in ${t}.${avgLine(a)} Take a moment to enjoy that.`, `You're finished. ${d}, in ${t}.${avgLine(a)} Lovely work.`],
@@ -153,6 +158,7 @@ export const COACHES: Record<CoachStyle, CoachLines> = {
     togo100: ['100 metres! Pretend there is cake at the finish!', 'Last 100! Run like you left the oven on!'],
     slow: (n, r) => [`Is that a stroll? You're at ${n}, and ${r}. Swing those arms!`, `${n}. Hmm. ${C(r)}. I've seen faster tortoises. Go on!`],
     backOnPace: ["There it is! Knew you had it in you.", "And we're back. Panic over."],
+    walkOk: ["Ooh, a little stroll! That's allowed, I promise. Off you go again when you're ready.", "Walking? No judgement here. Get your breath, then show me that jog again."],
     stopped: ["You've stopped. Admiring the view? Tap pause if you need a break.", "Hello? Anyone there? Pause, or let's go."],
     hrHigh: (h) => [`Steady on, heart rate's ${h}. It's working overtime. Ease off a touch.`],
     finish: (d, t, a) => [`Done! ${d} in ${t}.${avgLine(a)} Go and tell everyone. Twice.`, `Finished! ${d}, ${t}.${avgLine(a)} Legend behaviour.`],
@@ -186,6 +192,7 @@ export const COACHES: Record<CoachStyle, CoachLines> = {
     togo100: ['100 metres. Head up, finish proud.', 'Last 100. Run it like you mean it.'],
     slow: (n, r) => [`You've drifted back to ${n}, and ${r}. Shorten your stride and quicken the feet. It always comes back.`, `${n}, a little slow. ${C(r)}. Hills, wind, tired legs, it happens. Just lift the cadence.`],
     backOnPace: ["There you go. Back in the groove.", "That's it. Steady as she goes."],
+    walkOk: ["Walking is part of running. Rest a moment, then start again. That's how everyone gets there.", "Every runner walks sometimes. Catch your breath, and run again when you feel ready."],
     stopped: ["You've stopped. No shame in that. Pause it if you need a minute.", 'Take a breath if you need it. Tap pause.'],
     hrHigh: (h) => [`Heart rate's ${h}. That's red line territory. Back off, there's no prize for that today.`],
     finish: (d, t, a) => [`And home. ${d} in ${t}.${avgLine(a)} That's a run to remember.`, `Done. ${d}, ${t}.${avgLine(a)} Stretch, drink some water, and be proud.`],
@@ -219,6 +226,7 @@ export const COACHES: Record<CoachStyle, CoachLines> = {
     togo100: ['100 metres. Full effort.', 'Final 100. Arms and knees.'],
     slow: (n, r) => [`Pace has dropped to ${n}. ${C(r)}. Shorten your stride and increase cadence.`, `${n}. ${C(r)}. Check posture: tall, hips forward, relaxed hands.`],
     backOnPace: ['Back on target pace.', 'Pace recovered.'],
+    walkOk: ["Walking detected. That's fine at this stage. Recover, then resume an easy jog.", "Walk break. Let your heart rate settle, then return to a relaxed running pace."],
     stopped: ['No movement detected. Pause if you are stopping.'],
     hrHigh: (h) => [`Heart rate ${h}, above 93 percent of max. Reduce effort.`],
     finish: (d, t, a) => [`Finished. ${d} in ${t}.${avgLine(a)} Cool down with five minutes of walking.`],
@@ -252,6 +260,7 @@ export const COACHES: Record<CoachStyle, CoachLines> = {
     togo100: ['100 metres.'],
     slow: (n, r) => [`Slowing. ${n}. ${C(r)}.`],
     backOnPace: ['Back on pace.'],
+    walkOk: ["Walking is fine. Run when ready."],
     stopped: ['Stopped.'],
     hrHigh: (h) => [`Heart rate ${h}. High.`],
     finish: (d, t, a) => [`Finished. ${d} in ${t}.${avgLine(a)}`],

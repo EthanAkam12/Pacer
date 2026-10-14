@@ -104,6 +104,7 @@ export async function deleteWorkout(id: string) {
 // ----- training plan progress -----
 export const loadPlan = () => read<PlanProgress | null>(PLAN(), null);
 export async function savePlan(p: PlanProgress | null, fromCloud = false) {
+  if (p && !fromCloud) p = { ...p, updatedAt: new Date().toISOString() };
   await write(PLAN(), p);
   if (!fromCloud) hooks.stateChanged?.();
 }

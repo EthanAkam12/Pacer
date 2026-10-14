@@ -13,7 +13,8 @@ import { useDataVersion, useHr } from '../../src/hooks';
 import { weekStats } from '../../src/progress';
 import { scheduleSessions, weekDays, whenText } from '../../src/schedule';
 import { planById, PlanSession, sessionKey } from '../../src/plans';
-import { PlanSessionCard, WeekGoalCard } from '../../src/progressUi';
+import { PlanCheckIn, PlanSessionCard, WeekGoalCard } from '../../src/progressUi';
+import { easierSession } from '../../src/planAdapt';
 import { connectStrap, disconnectStrap, scanForStraps } from '../../src/heartRate';
 import { personaFor } from '../../src/coach';
 import { voiceFor } from '../../src/speech';
@@ -52,11 +53,12 @@ export default function StartScreen() {
   const week = weekStats(runs, s.weeklyGoalKm);
   const activePlan = progress ? planById(progress.planId) : null;
   const nextSession = activePlan ? activePlan.sessions.find((x) => !progress!.done[x.id]) ?? null : null;
+  const easierNext = nextSession ? easierSession(nextSession) : null;
   const upcoming = activePlan ? scheduleSessions(activePlan, progress!, s.runDays, runs) : [];
   const days = weekDays(s.runDays, runs, upcoming.map((x) => x.date));
 
   /** Starts a run from the form, or a training plan session when `ps` is given. */
-  async function start(ps?: PlanSession) {
+  async function start(ps?: PlanSession, easier = false) {
     if (!s) return;
     const mode: RunMode = ps ? (ps.kind === 'workout' ? 'intervals' : 'distance') : s.mode;
     const goalKm = ps?.km ?? parseFloat(s.goalKm.replace(',', '.'));
@@ -85,7 +87,12 @@ export default function StartScreen() {
       hrEvery: s.hrEvery,
       duckMusic: s.duckMusic,
       weeklyGoalKm: s.weeklyGoalKm,
-      ...(ps && activePlan ? { planSession: sessionKey(activePlan.id, ps), planLabel: `${activePlan.name}. ${ps.title}.` } : {}),
+      ...(ps && activePlan ? {
+        planSession: sessionKey(activePlan.id, ps),
+        planLabel: `${activePlan.name}. ${ps.title}${easier ? ', the easier version' : ''}.`,
+        gentle: !!activePlan.gentle,
+        planEasier: easier,
+      } : {}),
     };
     const res = await session.start(plan);
     setStarting(false);
@@ -100,8 +107,12 @@ export default function StartScreen() {
       <WeekGoalCard w={week} days={days} onSchedule={() => router.push('/schedule')} />
 
       {activePlan ? (
-        <PlanSessionCard plan={activePlan} next={nextSession} when={upcoming[0] ? whenText(upcoming[0].date) : undefined} doneCount={Object.keys(progress!.done).length} starting={starting}
-          onStart={() => nextSession && start(nextSession)} onOpen={() => router.push('/plans')} />
+        <>
+          <PlanCheckIn plan={activePlan} progress={progress!} runs={runs} onChange={setProgress} />
+          <PlanSessionCard plan={activePlan} next={nextSession} when={upcoming[0] ? whenText(upcoming[0].date) : undefined} doneCount={Object.keys(progress!.done).length} starting={starting}
+            onStart={() => nextSession && start(nextSession)} onOpen={() => router.push('/plans')}
+            onEasier={easierNext ? () => start(easierNext, true) : undefined} easierSummary={easierNext?.summary} />
+        </>
       ) : (
         <Pressable onPress={() => router.push('/plans')} accessibilityRole="button">
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

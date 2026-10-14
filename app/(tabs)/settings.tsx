@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { dayList } from '../../src/schedule';
+import { previewSpeech, voiceFor } from '../../src/speech';
 import { Button, Card, Chip, Field, PasswordField, Screen, SectionLabel, Segmented, Title, ToggleRow } from '../../src/ui';
 import { Appearance, setThemePrefs, swatch, THEMES, useTheme } from '../../src/theme';
 import { HR_OPTIONS, loadSettings, saveSettings } from '../../src/storage';
@@ -41,6 +42,16 @@ export default function SettingsScreen() {
   };
 
   const persona = personaFor(s.coach);
+
+  function openBluetooth() {
+    const fallback = () => Linking.openSettings().catch(() => {});
+    if (Platform.OS === 'android') Linking.sendIntent('android.settings.BLUETOOTH_SETTINGS').catch(fallback);
+    else fallback(); // iOS apps can't open the Bluetooth page directly
+  }
+  async function testVoice() {
+    const v = await voiceFor(persona, s!.voiceId, s!.voiceRate);
+    previewSpeech(`Hi, it's ${persona.name}. If you can hear me in your earphones, you're all set.`, v);
+  }
 
   async function changePassword() {
     try {
@@ -163,6 +174,15 @@ export default function SettingsScreen() {
       <Card style={{ paddingVertical: 6 }}>
         <Row icon="chatbubble-ellipses-outline" label={persona.name} sub={persona.traits.join(', ')} onPress={() => router.push('/coach')} />
         <ToggleRow label="Lower music while the coach talks" hint="Music and podcasts get quieter for each update, then come back." value={s.duckMusic} onChange={(duckMusic) => update({ duckMusic })} />
+      </Card>
+
+      <SectionLabel>Headphones</SectionLabel>
+      <Card style={{ paddingVertical: 6 }}>
+        <Text style={{ color: t.muted, lineHeight: 20, paddingTop: 8 }}>
+          Pair wireless earphones in your phone's Bluetooth settings. Once they're connected, the coach talks through them automatically.
+        </Text>
+        <Row icon="bluetooth" label="Open Bluetooth settings" sub={Platform.OS === 'ios' ? 'Opens Settings: go back to the main page, then tap Bluetooth' : 'Pair or connect your earphones'} onPress={openBluetooth} />
+        <Row icon="headset" label="Test the coach's voice" sub="Check you can hear it in your earphones" onPress={testVoice} />
       </Card>
 
       <SectionLabel>Heart rate</SectionLabel>

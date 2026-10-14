@@ -42,6 +42,10 @@ export interface Plan {
   /** Training plan session this run is for ("c25k:w3s2") and how the coach introduces it. */
   planSession?: string;
   planLabel?: string;
+  /** Beginner plan: no slowing-down warnings, and walking in a run step gets encouragement instead. */
+  gentle?: boolean;
+  /** The easier version of the plan session. */
+  planEasier?: boolean;
 }
 
 export interface Split {
@@ -117,6 +121,12 @@ export interface PlanProgress {
   startedAt: string;
   /** Session ids ("w3s2") finished, with the run that finished them. */
   done: Record<string, string>;
+  /** Recent plan session attempts with how they felt (src/planAdapt.ts). */
+  log?: import('./planAdapt').PlanAttempt[];
+  /** When the runner last stepped back or answered a "how's it going" prompt. */
+  adjustedAt?: string;
+  /** Last change on this phone, so the newest copy wins when syncing. */
+  updatedAt?: string;
 }
 
 export type Phase = 'idle' | 'running' | 'paused' | 'finishing' | 'finished';

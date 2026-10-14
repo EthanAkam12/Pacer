@@ -6,6 +6,7 @@ import { Button, Card, Screen, SectionLabel } from '../src/ui';
 import { useTheme } from '../src/theme';
 import { loadPlan, loadRuns, loadSettings, savePlan } from '../src/storage';
 import { PLANS, TrainingPlan, planById } from '../src/plans';
+import { currentWeek, restartFrom } from '../src/planAdapt';
 import { dayList, planDays, scheduleSessions } from '../src/schedule';
 import { PlanProgress, RunRecord, Settings } from '../src/types';
 
@@ -49,12 +50,23 @@ export default function PlansScreen() {
     ]);
   }
 
+  function stepBack(plan: TrainingPlan) {
+    const week = currentWeek(plan, progress!);
+    const doneThisWeek = plan.sessions.some((x) => x.week === week && progress!.done[x.id]);
+    const go = (w: number) => restartFrom(plan, w).then((p) => { if (p) setProgress(p); });
+    Alert.alert('Take it a bit slower?', 'Going back is completely normal. Your runs stay in History.', [
+      ...(doneThisWeek ? [{ text: `Repeat week ${week}`, onPress: () => go(week) }] : []),
+      ...(week > 1 ? [{ text: `Go back to week ${week - 1}`, onPress: () => go(week - 1) }] : []),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  }
+
   const others = PLANS.filter((p) => p.id !== active?.id);
 
   return (
     <Screen inset={false}>
       {active && progress ? (
-        <ActivePlan plan={active} progress={progress} settings={settings} onSchedule={() => router.push('/schedule')} onGuide={() => router.push(`/plan/${active.id}`)} onStop={stop} />
+        <ActivePlan plan={active} progress={progress} settings={settings} onSchedule={() => router.push('/schedule')} onGuide={() => router.push(`/plan/${active.id}`)} onStepBack={() => stepBack(active)} onStop={stop} />
       ) : null}
 
       <SectionLabel>{active ? 'Switch to a different plan' : 'Choose a plan'}</SectionLabel>
@@ -80,8 +92,8 @@ export default function PlansScreen() {
   );
 }
 
-function ActivePlan({ plan, progress, settings, onSchedule, onGuide, onStop }: {
-  plan: TrainingPlan; progress: PlanProgress; settings: Settings; onSchedule: () => void; onGuide: () => void; onStop: () => void;
+function ActivePlan({ plan, progress, settings, onSchedule, onGuide, onStepBack, onStop }: {
+  plan: TrainingPlan; progress: PlanProgress; settings: Settings; onSchedule: () => void; onGuide: () => void; onStepBack: () => void; onStop: () => void;
 }) {
   const t = useTheme();
   const done = Object.keys(progress.done).length;
@@ -104,6 +116,7 @@ function ActivePlan({ plan, progress, settings, onSchedule, onGuide, onStop }: {
           <Text style={{ color: t.accent, fontWeight: '700' }}>Change</Text>
         </Pressable>
         <Button variant="secondary" label="How this plan works" onPress={onGuide} style={{ marginTop: 10 }} />
+        {done ? <Button variant="secondary" label="Too hard? Repeat or go back a week" onPress={onStepBack} style={{ marginTop: 10 }} /> : null}
         <Button variant="danger" label="Stop this plan" onPress={onStop} style={{ marginTop: 10 }} />
       </Card>
     </>
