@@ -5,14 +5,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, Screen, SectionLabel } from '../../src/ui';
 import { useTheme } from '../../src/theme';
 import { loadPlan, savePlan } from '../../src/storage';
-import { planById } from '../../src/plans';
+import { planById, planFor } from '../../src/plans';
 import { GUIDES } from '../../src/planGuides';
+import { usePlus } from '../../src/plus';
 import { PlanProgress } from '../../src/types';
 
 /** A training plan's full guide: the goal, how it builds up week by week, session types and tips. */
 export default function PlanGuideScreen() {
   const t = useTheme();
   const router = useRouter();
+  const plus = usePlus();
   const { id } = useLocalSearchParams<{ id: string }>();
   const plan = planById(String(id));
   const guide = GUIDES[String(id)];
@@ -22,7 +24,7 @@ export default function PlanGuideScreen() {
   if (!plan || !guide || progress === undefined) return <Screen inset={false}>{null}</Screen>;
 
   const isActive = progress?.planId === plan.id;
-  const current = progress ? planById(progress.planId) : null;
+  const current = planFor(progress);
 
   function start() {
     const go = async () => {
@@ -45,7 +47,9 @@ export default function PlanGuideScreen() {
   const body = { color: t.text, lineHeight: 21 } as const;
   const startButton = isActive
     ? <Text style={{ color: t.accent, fontWeight: '700', marginTop: 12 }}>This is your current plan.</Text>
-    : <Button label={current ? 'Switch to this plan' : 'Start this plan'} onPress={start} style={{ marginTop: 12 }} />;
+    : plan.plus && !plus
+      ? <Button label="Unlock with Pacer Plus" onPress={() => router.push('/plus')} style={{ marginTop: 12 }} />
+      : <Button label={current ? 'Switch to this plan' : 'Start this plan'} onPress={start} style={{ marginTop: 12 }} />;
 
   return (
     <Screen inset={false}>

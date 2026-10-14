@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { usePlus } from '../../src/plus';
 import Svg, { Circle, Defs, LinearGradient, Polyline, Rect, Stop } from 'react-native-svg';
-import { Button, Screen } from '../../src/ui';
+import { Button, Chip, Screen } from '../../src/ui';
 import { mix, useTheme } from '../../src/theme';
 import { getRun, loadRuns } from '../../src/storage';
 import { RankBadge } from '../../src/badge';
@@ -11,6 +12,10 @@ import { PB_DISTANCES } from '../../src/records';
 import { RunRecord } from '../../src/types';
 import { fmtDate, fmtKm, fmtPace, fmtTime } from '../../src/format';
 import { useAuth } from '../../src/auth';
+
+const DESIGNS: { id: 'classic' | 'light' | 'bold'; label: string; plus?: boolean }[] = [
+  { id: 'classic', label: 'Classic' }, { id: 'light', label: 'Light', plus: true }, { id: 'bold', label: 'Bold', plus: true },
+];
 
 /** A picture of a run, made to share: distance, time, pace, route, rank and any PBs. */
 export default function ShareRun() {
@@ -22,6 +27,9 @@ export default function ShareRun() {
   const [rankLabel, setRankLabel] = useState('');
   const [error, setError] = useState('');
   const card = useRef<View>(null);
+  const router = useRouter();
+  const plus = usePlus();
+  const [design, setDesign] = useState<'classic' | 'light' | 'bold'>('classic');
 
   useEffect(() => {
     getRun(String(id)).then(setRun);
@@ -43,10 +51,22 @@ export default function ShareRun() {
     }
   }
 
-  const top = mix(t.accent, '#000000', 0.55), bottom = mix(t.accent, '#000000', 0.82);
+  // Card designs: Classic is free; Light and Bold are Pacer Plus extras.
+  const D = design === 'light'
+    ? { top: '#FFFFFF', bottom: mix(t.accent, '#FFFFFF', 0.85), fg: mix(t.accent, '#000000', 0.6), sub: 'rgba(0,0,0,0.55)', chip: 'rgba(0,0,0,0.07)', route: mix(t.accent, '#000000', 0.2), big: mix(t.accent, '#000000', 0.35) }
+    : design === 'bold'
+      ? { top: '#000000', bottom: '#111111', fg: '#FFFFFF', sub: 'rgba(255,255,255,0.65)', chip: 'rgba(255,255,255,0.12)', route: t.accent, big: t.dark ? t.accent : mix(t.accent, '#FFFFFF', 0.3) }
+      : { top: mix(t.accent, '#000000', 0.55), bottom: mix(t.accent, '#000000', 0.82), fg: '#FFFFFF', sub: 'rgba(255,255,255,0.75)', chip: 'rgba(255,255,255,0.14)', route: t.dark ? t.accent : mix(t.accent, '#ffffff', 0.35), big: '#FFFFFF' };
+  const top = D.top, bottom = D.bottom;
   const pbs = PB_DISTANCES.filter((d) => run.pbs?.includes(d.key));
   return (
     <Screen inset={false}>
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+        {DESIGNS.map((x) => (
+          <Chip key={x.id} small label={x.plus ? `${x.label} ★` : x.label} active={design === x.id}
+            onPress={() => (x.plus && !plus ? router.push('/plus') : setDesign(x.id))} />
+        ))}
+      </View>
       <View ref={card} collapsable={false} style={{ borderRadius: 24, overflow: 'hidden', aspectRatio: 4 / 5 }}>
         <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
           <Defs>
@@ -59,25 +79,25 @@ export default function ShareRun() {
         </Svg>
         <View style={{ flex: 1, padding: 22 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ flex: 1, color: '#fff', fontWeight: '900', fontSize: 20, letterSpacing: 3 }}>PACER</Text>
-            {username ? <Text style={{ color: 'rgba(255,255,255,0.75)', fontWeight: '700' }}>@{username}</Text> : null}
+            <Text style={{ flex: 1, color: D.fg, fontWeight: '900', fontSize: 20, letterSpacing: 3 }}>PACER</Text>
+            {username ? <Text style={{ color: D.sub, fontWeight: '700' }}>@{username}</Text> : null}
           </View>
-          <Text style={{ color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>{run.title} · {fmtDate(run.startedAt)}</Text>
+          <Text style={{ color: D.sub, marginTop: 4 }}>{run.title} · {fmtDate(run.startedAt)}</Text>
 
           <View style={{ flex: 1, marginVertical: 10 }}>
-            <RouteArt route={run.route} color={t.dark ? t.accent : mix(t.accent, '#ffffff', 0.35)} />
+            <RouteArt route={run.route} color={D.route} dot={D.fg} />
           </View>
 
-          <Text style={{ color: '#fff', fontSize: 64, fontWeight: '900', letterSpacing: -2, lineHeight: 68 }}>{fmtKm(run.distance)}<Text style={{ fontSize: 24, fontWeight: '700' }}> km</Text></Text>
+          <Text style={{ color: D.big, fontSize: design === 'bold' ? 80 : 64, fontWeight: '900', letterSpacing: -2, lineHeight: design === 'bold' ? 84 : 68 }}>{fmtKm(run.distance)}<Text style={{ fontSize: 24, fontWeight: '700' }}> km</Text></Text>
           <View style={{ flexDirection: 'row', gap: 22, marginTop: 6 }}>
-            <View><Text style={{ color: '#fff', fontSize: 24, fontWeight: '800' }}>{fmtTime(run.duration)}</Text><Text style={{ color: 'rgba(255,255,255,0.7)' }}>time</Text></View>
-            <View><Text style={{ color: '#fff', fontSize: 24, fontWeight: '800' }}>{fmtPace(run.avgPace)}</Text><Text style={{ color: 'rgba(255,255,255,0.7)' }}>per km</Text></View>
-            {run.avgHr ? <View><Text style={{ color: '#fff', fontSize: 24, fontWeight: '800' }}>{run.avgHr}</Text><Text style={{ color: 'rgba(255,255,255,0.7)' }}>avg bpm</Text></View> : null}
+            <View><Text style={{ color: D.fg, fontSize: 24, fontWeight: '800' }}>{fmtTime(run.duration)}</Text><Text style={{ color: D.sub }}>time</Text></View>
+            <View><Text style={{ color: D.fg, fontSize: 24, fontWeight: '800' }}>{fmtPace(run.avgPace)}</Text><Text style={{ color: D.sub }}>per km</Text></View>
+            {run.avgHr ? <View><Text style={{ color: D.fg, fontSize: 24, fontWeight: '800' }}>{run.avgHr}</Text><Text style={{ color: D.sub }}>avg bpm</Text></View> : null}
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 999, paddingRight: 12, paddingLeft: 4, paddingVertical: 3 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: D.chip, borderRadius: 999, paddingRight: 12, paddingLeft: 4, paddingVertical: 3 }}>
               <RankBadge id={rankId} size={22} />
-              <Text style={{ color: '#fff', fontWeight: '800' }}>{rankLabel}</Text>
+              <Text style={{ color: D.fg, fontWeight: '800' }}>{rankLabel}</Text>
             </View>
             {pbs.map((d) => (
               <Text key={d.key} style={{ color: '#1a1a1a', backgroundColor: '#FFE58A', fontWeight: '800', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, overflow: 'hidden' }}>🏆 {d.label} PB</Text>
@@ -92,7 +112,7 @@ export default function ShareRun() {
 }
 
 /** The route as a glowing line, no map, so the picture always renders. */
-function RouteArt({ route, color }: { route: { lat: number; lon: number }[]; color: string }) {
+function RouteArt({ route, color, dot }: { route: { lat: number; lon: number }[]; color: string; dot: string }) {
   const [box, setBox] = useState({ w: 0, h: 0 });
   let content: React.ReactNode = null;
   if (box.w && route.length > 1) {
@@ -106,7 +126,7 @@ function RouteArt({ route, color }: { route: { lat: number; lon: number }[]; col
       <Svg width={box.w} height={box.h}>
         <Polyline points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke={color} strokeOpacity={0.25} strokeWidth={12} strokeLinejoin="round" strokeLinecap="round" />
         <Polyline points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke={color} strokeWidth={4} strokeLinejoin="round" strokeLinecap="round" />
-        <Circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r={6} fill="#fff" />
+        <Circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r={6} fill={dot} />
       </Svg>
     );
   }

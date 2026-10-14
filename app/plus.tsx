@@ -3,7 +3,8 @@ import { Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, Screen, SectionLabel, ToggleRow } from '../src/ui';
-import { useTheme } from '../src/theme';
+import { DEFAULT_THEME, THEMES, setThemePrefs, useTheme } from '../src/theme';
+import { personaFor } from '../src/coach';
 import { loadSettings, saveSettings } from '../src/storage';
 import { PLUS_BENEFITS, PLUS_PRICE, setPlusFlag } from '../src/plus';
 import { Settings } from '../src/types';
@@ -17,6 +18,11 @@ export default function PlusScreen() {
 
   function toggle(plus: boolean) {
     const next = { ...s!, plus };
+    if (!plus) {
+      if (THEMES.find((x) => x.id === next.themeId)?.plus) { next.themeId = DEFAULT_THEME; setThemePrefs({ themeId: DEFAULT_THEME }); }
+      if (personaFor(next.coach).plus) { next.coach = 'maya'; next.voiceId = null; }
+      if (next.ghost !== 'off') next.ghost = 'off';
+    }
     setS(next);
     saveSettings(next);
     setPlusFlag(plus);

@@ -4,7 +4,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BarChart } from '../../src/charts';
 import { RunMap } from '../../src/map';
-import { planById } from '../../src/plans';
+import { planById, planFor } from '../../src/plans';
+import { usePlus } from '../../src/plus';
+import { shareGpx } from '../../src/gpx';
 import { PB_DISTANCES, runBests } from '../../src/records';
 import { Button, Card, Chip, Field, Screen, SectionLabel, Stat } from '../../src/ui';
 import { kindColor, useTheme } from '../../src/theme';
@@ -16,6 +18,7 @@ import { fmtDate, fmtKm, fmtPace, fmtTime } from '../../src/format';
 export default function RunDetail() {
   const t = useTheme();
   const router = useRouter();
+  const plus = usePlus();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [run, setRun] = useState<RunRecord | null | undefined>(undefined);
 
@@ -49,7 +52,20 @@ export default function RunDetail() {
         {fmtDate(run.startedAt)}{run.simulated ? ', practice run' : ''}{!run.completed ? ', ended early' : ''}
         {run.planSession ? ` · ${planById(run.planSession.split(':')[0])?.name ?? 'Training plan'}` : ''}
       </Text>
-      <Button small label="Share this run" onPress={() => router.push(`/share/${run.id}`)} style={{ alignSelf: 'flex-start', marginBottom: 14 }} />
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+        <Button small label="Share this run" onPress={() => router.push(`/share/${run.id}`)} />
+        {run.route.length > 1 ? (
+          <Button small variant="secondary" label={plus ? 'Export GPX' : 'Export GPX ★'} onPress={() => (plus ? shareGpx(run).catch(() => {}) : router.push('/plus'))} />
+        ) : null}
+      </View>
+      {run.ghostGap !== undefined ? (
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Ionicons name="people" size={22} color={t.accent} />
+          <Text style={{ flex: 1, color: t.text, fontWeight: '700', fontSize: 16 }}>
+            {run.ghostGap > 0 ? `You beat ${run.ghostLabel} by ${fmtTime(run.ghostGap)} 🎉` : run.ghostGap < 0 ? `${run.ghostLabel} won by ${fmtTime(-run.ghostGap)}` : `Dead heat with ${run.ghostLabel}!`}
+          </Text>
+        </Card>
+      ) : null}
 
       <FeelCard runId={run.id} />
 
@@ -161,7 +177,7 @@ function FeelCard({ runId }: { runId: string }) {
   const [message, setMessage] = useState('');
   useEffect(() => { attemptFor(runId).then(setState); }, [runId]);
   if (!state) return null;
-  const plan = planById(state.progress.planId);
+  const plan = planFor(state.progress);
   if (!plan) return null;
   const { attempt, progress } = state;
   const week = currentWeek(plan, progress);

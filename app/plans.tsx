@@ -2,17 +2,22 @@ import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Screen, SectionLabel } from '../src/ui';
+import { Button, Card, PlusLock, Screen, SectionLabel } from '../src/ui';
 import { useTheme } from '../src/theme';
 import { loadPlan, loadRuns, loadSettings, savePlan } from '../src/storage';
-import { PLANS, TrainingPlan, planById } from '../src/plans';
+import { PLANS, TrainingPlan, planById, planFor } from '../src/plans';
 import { currentWeek, restartFrom } from '../src/planAdapt';
+import { paceFactor } from '../src/customPlan';
+import { showDate } from '../src/gear';
+import { fmtPace, fmtTime } from '../src/format';
+import { usePlus } from '../src/plus';
 import { dayList, planDays, scheduleSessions } from '../src/schedule';
 import { PlanProgress, RunRecord, Settings } from '../src/types';
 
 export default function PlansScreen() {
   const t = useTheme();
   const router = useRouter();
+  const plus = usePlus();
   const [progress, setProgress] = useState<PlanProgress | null | undefined>(undefined);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [runs, setRuns] = useState<RunRecord[]>([]);
@@ -27,7 +32,7 @@ export default function PlansScreen() {
   }, []));
   if (progress === undefined || !settings) return <Screen inset={false}>{null}</Screen>;
 
-  const active = progress ? planById(progress.planId) : null;
+  const active = planFor(progress);
 
   async function choose(id: string) {
     const go = async () => {
@@ -37,7 +42,7 @@ export default function PlansScreen() {
       setAllWeeks(false);
     };
     if (active && active.id !== id) {
-      Alert.alert(`Switch to ${planById(id)!.name}?`, `Your ticks in ${active.name} will be cleared. Your runs stay in History.`, [
+      Alert.alert(`Switch to ${planById(id)?.name ?? 'this plan'}?`, `Your ticks in ${active.name} will be cleared. Your runs stay in History.`, [
         { text: 'Cancel', style: 'cancel' }, { text: 'Switch', onPress: go },
       ]);
     } else go();
@@ -69,19 +74,35 @@ export default function PlansScreen() {
         <ActivePlan plan={active} progress={progress} settings={settings} onSchedule={() => router.push('/schedule')} onGuide={() => router.push(`/plan/${active.id}`)} onStepBack={() => stepBack(active)} onStop={stop} />
       ) : null}
 
+      {plus ? (
+        <Pressable onPress={() => router.push('/custom-plan')} accessibilityRole="button">
+          <Card style={{ borderColor: t.accent, borderWidth: 1.5 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="sparkles" size={20} color={t.accent} />
+              <Text style={{ flex: 1, color: t.text, fontSize: 18, fontWeight: '800' }}>{active?.custom ? 'Rebuild your personal plan' : 'Build your own plan'}</Text>
+              <Ionicons name="chevron-forward" size={18} color={t.muted} />
+            </View>
+            <Text style={{ color: t.muted, marginTop: 4, lineHeight: 20 }}>A plan made for your race, fitness and running days, with paces that adjust as you go.</Text>
+          </Card>
+        </Pressable>
+      ) : (
+        <PlusLock title="Build your own plan" text="A plan made for your race, fitness and running days, with paces that adjust as you go." onPress={() => router.push('/plus')} />
+      )}
+
       <SectionLabel>{active ? 'Switch to a different plan' : 'Choose a plan'}</SectionLabel>
       {others.map((p) => (
         <Pressable key={p.id} onPress={() => router.push(`/plan/${p.id}`)} accessibilityRole="button">
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ flex: 1, color: t.text, fontSize: 18, fontWeight: '800' }}>{p.name}</Text>
-              <Text style={{ color: t.accent, fontWeight: '700', fontSize: 13 }}>{p.level}</Text>
+              {p.plus ? <Ionicons name="star" size={14} color={t.accent} style={{ marginRight: 4 }} /> : null}
+              <Text style={{ color: t.accent, fontWeight: '700', fontSize: 13 }}>{p.plus ? `Plus · ${p.level}` : p.level}</Text>
             </View>
             <Text style={{ color: t.muted, marginTop: 4, lineHeight: 20 }}>{p.blurb}</Text>
             <Text style={{ color: t.text, marginTop: 8, fontWeight: '600' }}>{p.weeks} weeks · {p.perWeek} runs a week</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
               <Button small variant="secondary" label="Read the guide" onPress={() => router.push(`/plan/${p.id}`)} style={{ flex: 1 }} />
-              <Button small label={active ? 'Switch' : 'Start'} onPress={() => choose(p.id)} style={{ flex: 1 }} />
+              <Button small label={p.plus && !plus ? 'Unlock with Plus' : active ? 'Switch' : 'Start'} onPress={() => (p.plus && !plus ? router.push('/plus') : choose(p.id))} style={{ flex: 1 }} />
             </View>
           </Card>
         </Pressable>
@@ -115,7 +136,21 @@ function ActivePlan({ plan, progress, settings, onSchedule, onGuide, onStepBack,
           <Text style={{ flex: 1, color: t.text }}>Sessions on <Text style={{ fontWeight: '800' }}>{dayList(days)}</Text></Text>
           <Text style={{ color: t.accent, fontWeight: '700' }}>Change</Text>
         </Pressable>
-        <Button variant="secondary" label="How this plan works" onPress={onGuide} style={{ marginTop: 10 }} />
+        {plan.custom ? (
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ color: t.text }}>Race day: <Text style={{ fontWeight: '800' }}>{showDate(plan.custom.raceDate)}</Text> · goal {fmtTime(plan.custom.goalTime)}</Text>
+            <Text style={{ color: t.muted, marginTop: 2 }}>Easy {fmtPace(plan.custom.paces.easy)} · tempo {fmtPace(plan.custom.paces.tempo)} · reps {fmtPace(plan.custom.paces.reps)} per km</Text>
+            {Math.abs(paceFactor(progress) - 1) >= 0.01 ? (
+              <Text style={{ color: t.accent, marginTop: 4, fontWeight: '600' }}>
+                {paceFactor(progress) > 1
+                  ? `Paces eased by ${Math.round((paceFactor(progress) - 1) * 100)}% because recent sessions felt hard.`
+                  : `Paces sped up by ${Math.round((1 - paceFactor(progress)) * 100)}% because recent sessions felt easy.`}
+              </Text>
+            ) : null}
+          </View>
+        ) : (
+          <Button variant="secondary" label="How this plan works" onPress={onGuide} style={{ marginTop: 10 }} />
+        )}
         {done ? <Button variant="secondary" label="Too hard? Repeat or go back a week" onPress={onStepBack} style={{ marginTop: 10 }} /> : null}
         <Button variant="danger" label="Stop this plan" onPress={onStop} style={{ marginTop: 10 }} />
       </Card>

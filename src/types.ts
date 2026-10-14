@@ -159,6 +159,8 @@ export interface PlanProgress {
   adjustedAt?: string;
   /** Last change on this phone, so the newest copy wins when syncing. */
   updatedAt?: string;
+  /** A personal plan (Pacer Plus) is stored with its progress. */
+  custom?: import('./plans').TrainingPlan;
 }
 
 export type Phase = 'idle' | 'running' | 'paused' | 'finishing' | 'finished';

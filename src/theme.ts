@@ -12,6 +12,8 @@ export interface ThemeDef {
   name: string;
   dark: { bg: string; accent: string; walk: string };
   light: { bg: string; accent: string; walk: string };
+  /** Pacer Plus bonus theme. */
+  plus?: boolean;
 }
 
 export const THEMES: ThemeDef[] = [
@@ -23,6 +25,10 @@ export const THEMES: ThemeDef[] = [
   { id: 'wine', name: 'Wine & rose', dark: { bg: '#1E0F17', accent: '#FB7185', walk: '#5EEAD4' }, light: { bg: '#FAF3F5', accent: '#BE123C', walk: '#0F766E' } },
   { id: 'slate', name: 'Slate & sky', dark: { bg: '#0F172A', accent: '#38BDF8', walk: '#86EFAC' }, light: { bg: '#F1F5F9', accent: '#0369A1', walk: '#15803D' } },
   { id: 'mocha', name: 'Mocha & peach', dark: { bg: '#1C1512', accent: '#FDBA74', walk: '#7DD3FC' }, light: { bg: '#F8F4F1', accent: '#C2410C', walk: '#0369A1' } },
+  { id: 'aurora', name: 'Aurora', plus: true, dark: { bg: '#071A24', accent: '#4ADE80', walk: '#C4B5FD' }, light: { bg: '#EFF7F3', accent: '#15803D', walk: '#6D28D9' } },
+  { id: 'sunset', name: 'Sunset', plus: true, dark: { bg: '#1F1030', accent: '#FB923C', walk: '#F472B6' }, light: { bg: '#FAF4F0', accent: '#C2410C', walk: '#BE185D' } },
+  { id: 'gold', name: 'Black & gold', plus: true, dark: { bg: '#0C0B08', accent: '#FACC15', walk: '#93C5FD' }, light: { bg: '#F7F5EE', accent: '#A16207', walk: '#1D4ED8' } },
+  { id: 'glacier', name: 'Glacier', plus: true, dark: { bg: '#0A1A2F', accent: '#A5F3FC', walk: '#FDE68A' }, light: { bg: '#F0F7FA', accent: '#0E7490', walk: '#B45309' } },
 ];
 export const DEFAULT_THEME = 'ocean';
 export type Appearance = 'system' | 'light' | 'dark';

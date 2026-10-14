@@ -10,6 +10,7 @@ import { loadRuns, loadSettings } from '../../src/storage';
 import { useDataVersion } from '../../src/hooks';
 import { ACHIEVEMENTS, earned } from '../../src/progress';
 import { ProgressSection } from '../../src/progressStats';
+import { AdvancedStats } from '../../src/advStatsUi';
 import { RunRecord } from '../../src/types';
 import { fmtDate, fmtKm, fmtPace, fmtShortDate, fmtTime } from '../../src/format';
 
@@ -18,11 +19,12 @@ export default function HistoryScreen() {
   const router = useRouter();
   const [runs, setRuns] = useState<RunRecord[] | null>(null);
   const [goal, setGoal] = useState(10);
+  const [maxHr, setMaxHr] = useState(190);
   const version = useDataVersion();
 
   useFocusEffect(useCallback(() => {
     let alive = true;
-    Promise.all([loadRuns(), loadSettings()]).then(([r, s]) => { if (alive) { setRuns(r); setGoal(s.weeklyGoalKm); } });
+    Promise.all([loadRuns(), loadSettings()]).then(([r, s]) => { if (alive) { setRuns(r); setGoal(s.weeklyGoalKm); const m = parseInt(s.maxHr, 10); setMaxHr(m >= 120 && m <= 230 ? m : 190); } });
     return () => { alive = false; };
   }, [version]));
 
@@ -85,6 +87,7 @@ export default function HistoryScreen() {
       ) : null}
 
       {real.length ? <ProgressSection runs={real} /> : null}
+      {real.length ? <AdvancedStats runs={real} maxHr={maxHr} /> : null}
 
       {runs.length === 0 ? (
         <Card>

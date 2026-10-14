@@ -168,7 +168,7 @@ export default function SettingsScreen() {
             return (
               <Pressable
                 key={th.id}
-                onPress={() => { setThemePrefs({ themeId: th.id }); update({ themeId: th.id }); }}
+                onPress={() => { if (th.plus && !s.plus) { router.push('/plus'); return; } setThemePrefs({ themeId: th.id }); update({ themeId: th.id }); }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={th.name}
@@ -184,7 +184,7 @@ export default function SettingsScreen() {
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
                   {active ? <Ionicons name="checkmark-circle" size={15} color={t.accent} /> : null}
-                  <Text style={{ color: t.text, fontWeight: active ? '800' : '600', fontSize: 13 }} numberOfLines={1}>{th.name}</Text>
+                  <Text style={{ color: t.text, fontWeight: active ? '800' : '600', fontSize: 13 }} numberOfLines={1}>{th.name}{th.plus ? ' ★' : ''}</Text>
                 </View>
               </Pressable>
             );

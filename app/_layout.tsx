@@ -55,6 +55,8 @@ function Routes() {
         <Stack.Screen name="shoes" options={{ headerShown: true, title: 'Shoes' }} />
         <Stack.Screen name="race" options={{ headerShown: true, title: 'Your race', presentation: 'modal' }} />
         <Stack.Screen name="routine/[id]" options={({ route }) => ({ headerShown: true, title: ROUTINES[String((route.params as { id?: string })?.id)]?.title ?? 'Warm-up' })} />
+        <Stack.Screen name="custom-plan" options={{ headerShown: true, title: 'Build your plan' }} />
+        <Stack.Screen name="review" options={{ headerShown: true, title: 'Year in review' }} />
         <Stack.Screen name="plus" options={{ headerShown: true, title: 'Pacer Plus', presentation: 'modal' }} />
         <Stack.Screen name="schedule" options={{ headerShown: true, title: 'Running schedule' }} />
         <Stack.Screen name="achievements" options={{ headerShown: true, title: 'Achievements' }} />

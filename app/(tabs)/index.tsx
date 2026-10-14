@@ -16,9 +16,10 @@ import { session, SIM_SPEED } from '../../src/session';
 import { useDataVersion, useHr } from '../../src/hooks';
 import { weekStats } from '../../src/progress';
 import { scheduleSessions, weekDays, whenText } from '../../src/schedule';
-import { planById, PlanSession, sessionKey } from '../../src/plans';
+import { planFor, PlanSession, sessionKey } from '../../src/plans';
 import { LinkRow, PlanCheckIn, PlanSessionCard, RaceCard, WeekGoalCard } from '../../src/progressUi';
 import { easierSession } from '../../src/planAdapt';
+import { paceFactor } from '../../src/customPlan';
 import { connectStrap, disconnectStrap, scanForStraps } from '../../src/heartRate';
 import { personaFor } from '../../src/coach';
 import { voiceFor } from '../../src/speech';
@@ -61,7 +62,7 @@ export default function StartScreen() {
   const shoe = shoes.find((x) => x.id === s.shoeId && !x.retired) ?? null;
   const workout = workouts.find((w) => w.id === s.workoutId) ?? workouts[0] ?? null;
   const week = weekStats(runs, s.weeklyGoalKm);
-  const activePlan = progress ? planById(progress.planId) : null;
+  const activePlan = planFor(progress);
   const nextSession = activePlan ? activePlan.sessions.find((x) => !progress!.done[x.id]) ?? null : null;
   const easierNext = nextSession ? easierSession(nextSession) : null;
   const upcoming = activePlan ? scheduleSessions(activePlan, progress!, s.runDays, runs) : [];
@@ -72,7 +73,8 @@ export default function StartScreen() {
     if (!s) return;
     const mode: RunMode = ps ? (ps.kind === 'workout' ? 'intervals' : 'distance') : s.mode;
     const goalKm = ps?.km ?? parseFloat(s.goalKm.replace(',', '.'));
-    const target = ps ? ps.targetPace ?? null : s.targetPace.trim() ? parsePace(s.targetPace) : null;
+    const target = ps ? (ps.targetPace ? Math.round(ps.targetPace * (activePlan?.custom ? paceFactor(progress) : 1)) : null)
+      : s.targetPace.trim() ? parsePace(s.targetPace) : null;
     const chosen = ps?.workout ?? workout;
     if (mode === 'distance' && !(goalKm >= 0.2 && goalKm <= 200)) { setError('Enter a distance between 0.2 and 200 km.'); return; }
     if (!ps && s.targetPace.trim() && !(target && target >= 150 && target <= 1200)) { setError('Write target pace as minutes:seconds per km, for example 6:00.'); return; }

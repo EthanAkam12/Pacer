@@ -287,6 +287,8 @@ export interface Persona {
   accents: string[]; // preferred voice languages, best first
   rate: number; // speaking speed before the person's own speed setting
   pitch: number;
+  /** Pacer Plus coach. */
+  plus?: boolean;
 }
 
 export const PERSONAS: Persona[] = [
@@ -297,6 +299,8 @@ export const PERSONAS: Persona[] = [
   { id: 'charlie', name: 'Charlie', traits: ['Wise', 'Warm', 'Seasoned marathoner'], style: 'wise', gender: 'female', accents: ['en-IE', 'en-GB', 'en-AU', 'en-US'], rate: 0.95, pitch: 0.97 },
   { id: 'kai', name: 'Kai', traits: ['Technical', 'Precise', 'Form-focused'], style: 'technical', gender: 'male', accents: ['en-US', 'en-GB', 'en-AU'], rate: 1.02, pitch: 1.0 },
   { id: 'sam', name: 'Sam', traits: ['Focused', 'Minimal', 'Just the numbers'], style: 'minimal', gender: 'male', accents: ['en-US', 'en-GB', 'en-AU'], rate: 1.05, pitch: 1.0 },
+  { id: 'rosie', name: 'Rosie', traits: ['Bubbly', 'Playful', 'Never stops smiling'], style: 'cheeky', gender: 'female', accents: ['en-GB', 'en-IE', 'en-AU', 'en-US'], rate: 1.05, pitch: 1.1, plus: true },
+  { id: 'marcus', name: 'Marcus', traits: ['Ex-sprinter', 'Driven', 'Old-school'], style: 'tough', gender: 'male', accents: ['en-US', 'en-GB', 'en-AU'], rate: 1.0, pitch: 0.85, plus: true },
 ];
 
 const LEGACY: Record<string, string> = { friendly: 'maya', tough: 'dave', calm: 'laura', minimal: 'sam', cheeky: 'jack' };

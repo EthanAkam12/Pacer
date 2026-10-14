@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { usePlus } from '../src/plus';
 import { Card, Screen, SectionLabel, Segmented } from '../src/ui';
 import { useTheme } from '../src/theme';
 import { loadSettings, saveSettings } from '../src/storage';
@@ -12,6 +14,8 @@ const RATES = [{ label: 'Slower', value: 0.85 }, { label: 'Normal', value: 1 }, 
 
 export default function CoachScreen() {
   const t = useTheme();
+  const router = useRouter();
+  const plus = usePlus();
   const [s, setS] = useState<Settings | null>(null);
   const [voices, setVoices] = useState<VoiceOption[] | null>(null);
   const [showVoices, setShowVoices] = useState(false);
@@ -46,14 +50,14 @@ export default function CoachScreen() {
         const active = persona.id === p.id;
         const v = voiceOf(p, active ? s.voiceId : null);
         return (
-          <Pressable key={p.id} onPress={() => hear(update({ coach: p.id, voiceId: null }))} accessibilityRole="radio" accessibilityState={{ selected: active }}>
+          <Pressable key={p.id} onPress={() => (p.plus && !plus ? router.push('/plus') : hear(update({ coach: p.id, voiceId: null })))} accessibilityRole="radio" accessibilityState={{ selected: active }}>
             <Card style={{ borderColor: active ? t.accent : t.line, borderWidth: active ? 2 : 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: active ? t.accent : t.chip, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 20, fontWeight: '800', color: active ? t.onAccent : t.text }}>{p.name[0]}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 19, fontWeight: '800', color: t.text }}>{p.name}</Text>
+                  <Text style={{ fontSize: 19, fontWeight: '800', color: t.text }}>{p.name}{p.plus ? <Text style={{ color: t.accent, fontSize: 13 }}>  ★ Plus</Text> : null}</Text>
                   <Text style={{ color: t.muted, marginTop: 1 }}>{p.traits.join(' · ')}</Text>
                 </View>
                 <Ionicons name={active ? 'volume-high' : 'play-circle-outline'} size={24} color={active ? t.accent : t.muted} />

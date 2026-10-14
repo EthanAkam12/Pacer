@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { Card, Screen, SectionLabel } from '../src/ui';
 import { useTheme } from '../src/theme';
 import { loadPlan, loadSettings, saveSettings } from '../src/storage';
-import { planById } from '../src/plans';
+import { planFor } from '../src/plans';
 import { syncReminders } from '../src/reminders';
 import { DAY_SHORT, WEEK_ORDER, dayList, planDays } from '../src/schedule';
 import { PlanProgress, Settings } from '../src/types';
@@ -31,7 +31,7 @@ export default function ScheduleScreen() {
     saveSettings(next).then(syncReminders);
   }
 
-  const plan = progress ? planById(progress.planId) : null;
+  const plan = planFor(progress);
   const chosen = plan ? planDays(s.runDays, plan.perWeek) : [];
   const off = WEEK_ORDER.filter((d) => !s.runDays.includes(d));
 

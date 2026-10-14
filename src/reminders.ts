@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { loadPlan, loadRuns, loadSettings } from './storage';
-import { planById } from './plans';
+import { planFor } from './plans';
 import { planDays, scheduleSessions } from './schedule';
 
 /**
@@ -54,7 +54,7 @@ export async function syncReminders() {
     const s = await loadSettings();
     const allowed = s.reminders && (await n.getPermissionsAsync()).granted;
     const [progress, runs] = await Promise.all([loadPlan(), loadRuns()]);
-    const plan = progress ? planById(progress.planId) : null;
+    const plan = planFor(progress);
     const days = plan ? planDays(s.runDays, plan.perWeek) : s.runDays;
     const upcoming = plan && progress ? scheduleSessions(plan, progress, s.runDays, runs).slice(0, 7) : [];
     const [hour, minute] = s.reminderTime.split(':').map(Number);
