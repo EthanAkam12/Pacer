@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, Pressable, ScrollView, StyleProp, StyleSheet, Switch, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { kindColor, useTheme } from './theme';
 import { Workout } from './types';
 import { estimateSeconds, expandWorkout } from './intervals';
@@ -187,5 +188,23 @@ export function AuthHeader({ title, sub }: { title: string; sub: string }) {
       <Text style={{ fontSize: 30, fontWeight: '800', color: t.text, letterSpacing: -0.5, textAlign: 'center' }}>{title}</Text>
       <Text style={{ fontSize: 16, color: t.muted, marginTop: 6, lineHeight: 22, textAlign: 'center' }}>{sub}</Text>
     </View>
+  );
+}
+
+/** Shown in place of a Pacer Plus feature when Plus is off. */
+export function PlusLock({ title, text, onPress }: { title: string; text: string; onPress: () => void }) {
+  const t = useTheme();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button">
+      <Card style={{ borderColor: t.accent, borderWidth: 1.5, borderStyle: 'dashed' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="star" size={16} color={t.accent} />
+          <Text style={{ color: t.accent, fontWeight: '800', fontSize: 13 }}>PACER PLUS</Text>
+        </View>
+        <Text style={{ color: t.text, fontWeight: '800', fontSize: 17, marginTop: 4 }}>{title}</Text>
+        <Text style={{ color: t.muted, marginTop: 2, lineHeight: 20 }}>{text}</Text>
+        <Text style={{ color: t.accent, fontWeight: '700', marginTop: 8 }}>See Pacer Plus →</Text>
+      </Card>
+    </Pressable>
   );
 }

@@ -7,7 +7,8 @@ import { Button, Card } from './ui';
 import { WeekStats } from './progress';
 import { PlanSession, TrainingPlan } from './plans';
 import { DAY_SHORT, WeekDay } from './schedule';
-import { PlanProgress, RunRecord } from './types';
+import { PlanProgress, Race, RunRecord } from './types';
+import { daysUntil, raceDistanceName } from './gear';
 import { acknowledge, breakDays, currentWeek, restartFrom, struggling } from './planAdapt';
 
 /** A ring that fills as this week's distance approaches the goal. */
@@ -162,5 +163,51 @@ export function PlanCheckIn({ plan, progress, runs, onChange }: {
         <Button variant="secondary" label={tough ? 'Keep going as planned' : 'Carry on where I was'} onPress={() => act(acknowledge(plan))} />
       </View>
     </Card>
+  );
+}
+
+/** Countdown to the runner's race, and whether the training plan finishes in time. */
+export function RaceCard({ race, planEnd, onPress }: { race: Race; planEnd: Date | null; onPress: () => void }) {
+  const t = useTheme();
+  const days = daysUntil(race);
+  const [y, m, d] = race.date.split('-').map(Number);
+  const raceDay = new Date(y, m - 1, d);
+  const gap = planEnd ? Math.round((raceDay.getTime() - new Date(planEnd).setHours(0, 0, 0, 0)) / 864e5) : null;
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button">
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View style={{ alignItems: 'center', minWidth: 58 }}>
+          <Text style={{ color: t.accent, fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] }}>{days}</Text>
+          <Text style={{ color: t.muted, fontSize: 12, fontWeight: '600' }}>{days === 1 ? 'day' : 'days'}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{days === 0 ? `Race day: ${race.name}! 🏁` : `🏁 ${race.name}`}</Text>
+          <Text style={{ color: t.muted, marginTop: 1 }}>{raceDistanceName(race.km)} · {raceDay.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
+          {gap !== null ? (
+            <Text style={{ color: gap < 0 ? t.danger : t.muted, marginTop: 3, fontSize: 13, lineHeight: 18 }}>
+              {gap < 0 ? `Your plan finishes ${-gap} days after the race. Try a shorter plan, or train on more days.`
+                : gap <= 14 ? 'Your plan finishes just in time. 👌'
+                : `Your plan finishes ${Math.round(gap / 7)} weeks before the race. Keep running to stay sharp.`}
+            </Text>
+          ) : null}
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={t.muted} />
+      </Card>
+    </Pressable>
+  );
+}
+
+/** A tappable row with an icon, used for small links like shoes and warm-up. */
+export function LinkRow({ icon, label, sub, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; sub?: string; onPress: () => void }) {
+  const t = useTheme();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, opacity: pressed ? 0.6 : 1 })}>
+      <Ionicons name={icon} size={20} color={t.accent} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: t.text, fontWeight: '700', fontSize: 16 }}>{label}</Text>
+        {sub ? <Text style={{ color: t.muted, marginTop: 1 }}>{sub}</Text> : null}
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={t.muted} />
+    </Pressable>
   );
 }

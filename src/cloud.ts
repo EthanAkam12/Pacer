@@ -1,7 +1,7 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { loadPlan, loadRuns, loadWorkouts, mergeRuns, notifyDataChanged, savePlan, saveWorkouts, setStorageHooks } from './storage';
-import { PlanProgress, RunRecord, Workout } from './types';
+import { loadPlan, loadRace, loadRuns, loadShoes, loadWorkouts, mergeRuns, notifyDataChanged, savePlan, saveRace, saveShoes, saveWorkouts, setStorageHooks } from './storage';
+import { PlanProgress, Race, RunRecord, Shoe, Workout } from './types';
 
 /**
  * Backs up runs, workouts and plan progress to Firestore (users/{uid}/...), and restores them on a new
@@ -18,8 +18,8 @@ const stateDoc = (u: string) => doc(db!, 'users', u, 'data', 'state');
 
 async function uploadState() {
   if (!db || !uid) return;
-  const [workouts, plan] = await Promise.all([loadWorkouts(), loadPlan()]);
-  await setDoc(stateDoc(uid), clean({ workouts, plan, updatedAt: Date.now() }));
+  const [workouts, plan, shoes, race] = await Promise.all([loadWorkouts(), loadPlan(), loadShoes(), loadRace()]);
+  await setDoc(stateDoc(uid), clean({ workouts, plan, shoes, race, updatedAt: Date.now() }));
 }
 
 export function startCloud(userId: string | null) {
@@ -49,7 +49,10 @@ export async function syncAll() {
   const snap = await getDoc(stateDoc(u));
   let changed = added > 0;
   if (snap.exists()) {
-    const cloud = snap.data() as { workouts?: Workout[]; plan?: PlanProgress | null };
+    const cloud = snap.data() as { workouts?: Workout[]; plan?: PlanProgress | null; shoes?: Shoe[]; race?: Race | null };
+    // Shoes and race: take the cloud copy when this phone has none (e.g. a new phone).
+    if (cloud.shoes?.length && !(await loadShoes()).length) { await saveShoes(cloud.shoes, true); changed = true; }
+    if (cloud.race && !(await loadRace())) { await saveRace(cloud.race, true); changed = true; }
     const mine = await loadWorkouts();
     const ids = new Set(mine.map((w) => w.id));
     const extra = (cloud.workouts ?? []).filter((w) => !ids.has(w.id));

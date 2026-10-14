@@ -6,10 +6,14 @@ import { ActivityIndicator, View } from 'react-native';
 import { setThemePrefs, useTheme } from '../src/theme';
 import { loadSettings } from '../src/storage';
 import { planById } from '../src/plans';
+import { setPlusFlag } from '../src/plus';
+import { ROUTINES } from '../src/routines';
 import { AuthProvider, useAuth } from '../src/auth';
 
 export default function RootLayout() {
-  useEffect(() => { loadSettings().then((s) => setThemePrefs({ themeId: s.themeId, appearance: s.appearance })); }, []);
+  useEffect(() => {
+    loadSettings().then((s) => { setThemePrefs({ themeId: s.themeId, appearance: s.appearance }); setPlusFlag(s.plus); });
+  }, []);
   return (
     <AuthProvider>
       <ThemedStatusBar />
@@ -48,6 +52,10 @@ function Routes() {
         <Stack.Screen name="change-username" options={{ headerShown: true, title: 'Username', presentation: 'modal' }} />
         <Stack.Screen name="plans" options={{ headerShown: true, title: 'Training plans' }} />
         <Stack.Screen name="plan/[id]" options={({ route }) => ({ headerShown: true, title: planById(String((route.params as { id?: string })?.id))?.name ?? 'Training plan' })} />
+        <Stack.Screen name="shoes" options={{ headerShown: true, title: 'Shoes' }} />
+        <Stack.Screen name="race" options={{ headerShown: true, title: 'Your race', presentation: 'modal' }} />
+        <Stack.Screen name="routine/[id]" options={({ route }) => ({ headerShown: true, title: ROUTINES[String((route.params as { id?: string })?.id)]?.title ?? 'Warm-up' })} />
+        <Stack.Screen name="plus" options={{ headerShown: true, title: 'Pacer Plus', presentation: 'modal' }} />
         <Stack.Screen name="schedule" options={{ headerShown: true, title: 'Running schedule' }} />
         <Stack.Screen name="achievements" options={{ headerShown: true, title: 'Achievements' }} />
         <Stack.Screen name="friends" options={{ headerShown: true, title: 'Friends', headerBackTitle: 'Back' }} />

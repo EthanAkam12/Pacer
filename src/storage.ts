@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { HrEvery, PlanProgress, RunRecord, Settings, Workout } from './types';
+import { HrEvery, PlanProgress, Race, RunRecord, Settings, Shoe, Workout } from './types';
 import { PRESETS } from './intervals';
 
 /**
@@ -13,11 +13,13 @@ const key = (base: string) => (user ? `${base}.${user}` : base);
 const RUNS = () => key('pacer.runs.v1');
 const WORKOUTS = () => key('pacer.workouts.v1');
 const PLAN = () => key('pacer.plan.v1');
+const SHOES = () => key('pacer.shoes.v1');
+const RACE = () => key('pacer.race.v1');
 
 export interface StorageHooks {
   runSaved?: (r: RunRecord) => void;
   runDeleted?: (id: string) => void;
-  stateChanged?: () => void; // workouts or plan progress changed
+  stateChanged?: () => void; // workouts, plan progress, shoes or race changed
 }
 let hooks: StorageHooks = {};
 export const setStorageHooks = (h: StorageHooks) => { hooks = h; };
@@ -65,6 +67,12 @@ export async function saveRun(r: RunRecord) {
   await write(RUNS(), runs);
   hooks.runSaved?.(r);
 }
+/** Replaces a saved run (e.g. a corrected treadmill distance or a different pair of shoes). */
+export async function updateRun(r: RunRecord) {
+  const runs = await read<RunRecord[]>(RUNS(), []);
+  await write(RUNS(), runs.map((x) => (x.id === r.id ? r : x)));
+  hooks.runSaved?.(r);
+}
 export async function deleteRun(id: string) {
   await write(RUNS(), (await read<RunRecord[]>(RUNS(), [])).filter((r) => r.id !== id));
   hooks.runDeleted?.(id);
@@ -109,6 +117,18 @@ export async function savePlan(p: PlanProgress | null, fromCloud = false) {
   if (!fromCloud) hooks.stateChanged?.();
 }
 
+// ----- shoes and race -----
+export const loadShoes = () => read<Shoe[]>(SHOES(), []);
+export async function saveShoes(list: Shoe[], fromCloud = false) {
+  await write(SHOES(), list);
+  if (!fromCloud) hooks.stateChanged?.();
+}
+export const loadRace = () => read<Race | null>(RACE(), null);
+export async function saveRace(r: Race | null, fromCloud = false) {
+  await write(RACE(), r);
+  if (!fromCloud) hooks.stateChanged?.();
+}
+
 // ----- settings -----
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'distance', goalKm: '5', targetPace: '', splitEvery: 1000,
@@ -116,6 +136,8 @@ export const DEFAULT_SETTINGS: Settings = {
   coach: 'maya', voiceId: null, voiceRate: 1, hrEvery: 'split', leaderboards: true,
   themeId: 'ocean', appearance: 'system', duckMusic: true, weeklyGoalKm: 10,
   runDays: [0, 1, 2, 3, 4, 5, 6],
+  plus: false, autoPause: true, treadmill: false, treadmillKmh: '10',
+  reminders: false, reminderTime: '18:00', shoeId: null, ghost: 'off',
 };
 export const HR_OPTIONS: { label: string; value: HrEvery }[] = [
   { label: 'Off', value: 'off' }, { label: 'Each split', value: 'split' },

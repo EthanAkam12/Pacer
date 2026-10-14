@@ -93,8 +93,13 @@ export default function RunScreen() {
 
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: t.muted, fontSize: 16, fontWeight: '600' }}>{paused ? 'Paused' : s.title}</Text>
+          <Text style={{ color: t.muted, fontSize: 16, fontWeight: '600' }}>{s.autoPaused ? 'Auto-paused' : paused ? 'Paused' : s.title}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {s.treadmill ? (
+              <Text style={{ backgroundColor: t.soft, color: t.text, fontWeight: '800', fontSize: 12, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, overflow: 'hidden' }}>
+                Treadmill
+              </Text>
+            ) : null}
             {s.simulated ? (
               <Text style={{ backgroundColor: t.soft, color: t.text, fontWeight: '800', fontSize: 12, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, overflow: 'hidden' }}>
                 Practice {SIM_SPEED}×
@@ -103,6 +108,12 @@ export default function RunScreen() {
             <LiveDot on={s.phase === 'running'} color={t.accent} />
           </View>
         </View>
+
+        {s.autoPaused ? (
+          <View style={{ backgroundColor: t.soft, borderRadius: 14, padding: 12, marginTop: 12 }}>
+            <Text style={{ color: t.text, fontWeight: '700' }}>Auto-paused: you've stopped moving. The clock starts again when you do.</Text>
+          </View>
+        ) : null}
 
         {s.mode === 'intervals' && s.step ? (
           <View style={{ backgroundColor: t.run.panel, borderRadius: 20, padding: 18, marginTop: 14 }}>
@@ -140,6 +151,10 @@ export default function RunScreen() {
           <Tile t={t} value={fmtTime(s.elapsed)} label="time" right />
           <Tile t={t} value={fmtPace(s.avgPace)} label="average pace" />
           <Tile t={t} value={s.hr ? String(s.hr) : '––'} label="heart rate" right />
+          {s.ghostLabel ? (
+            <Tile t={t} value={s.ghostGap === null ? '––' : `${s.ghostGap >= 0 ? '+' : '−'}${fmtTime(Math.abs(s.ghostGap))}`}
+              label={s.ghostGap === null ? `vs ${s.ghostLabel}` : s.ghostGap >= 0 ? `ahead of ${s.ghostLabel}` : `behind ${s.ghostLabel}`} />
+          ) : null}
         </View>
 
         <CoachBubble t={t} text={s.gpsStatus || s.coachLine || 'Your coach will talk to you here.'} />

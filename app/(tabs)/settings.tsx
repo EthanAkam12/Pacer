@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { dayList } from '../../src/schedule';
 import { previewSpeech, voiceFor } from '../../src/speech';
+import { allowReminders, remindersAvailable, syncReminders } from '../../src/reminders';
 import { Button, Card, Chip, Field, PasswordField, Screen, SectionLabel, Segmented, Title, ToggleRow } from '../../src/ui';
 import { Appearance, setThemePrefs, swatch, THEMES, useTheme } from '../../src/theme';
 import { HR_OPTIONS, loadSettings, saveSettings } from '../../src/storage';
@@ -43,6 +44,16 @@ export default function SettingsScreen() {
 
   const persona = personaFor(s.coach);
 
+  async function toggleReminders(on: boolean) {
+    if (on && !(await allowReminders())) {
+      Alert.alert('Notifications are off', 'To get reminders, allow notifications for Pacer in your phone\'s settings.', [
+        { text: 'Not now', style: 'cancel' }, { text: 'Open settings', onPress: () => Linking.openSettings() },
+      ]);
+      return;
+    }
+    await update({ reminders: on });
+    await syncReminders();
+  }
   function openBluetooth() {
     const fallback = () => Linking.openSettings().catch(() => {});
     if (Platform.OS === 'android') Linking.sendIntent('android.settings.BLUETOOTH_SETTINGS').catch(fallback);
@@ -77,6 +88,17 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <Title>Settings</Title>
+
+      <Pressable onPress={() => router.push('/plus')} accessibilityRole="button">
+        <Card style={{ backgroundColor: t.accent, borderWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Ionicons name="star" size={24} color={t.onAccent} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.onAccent, fontWeight: '900', fontSize: 17 }}>Pacer Plus{s.plus ? ' is on' : ''}</Text>
+            <Text style={{ color: t.onAccent, marginTop: 1 }}>Adaptive plans, ghost runner, advanced stats and more</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={t.onAccent} />
+        </Card>
+      </Pressable>
 
       <SectionLabel>Account</SectionLabel>
       {configured && user ? (
@@ -174,6 +196,24 @@ export default function SettingsScreen() {
       <Card style={{ paddingVertical: 6 }}>
         <Row icon="chatbubble-ellipses-outline" label={persona.name} sub={persona.traits.join(', ')} onPress={() => router.push('/coach')} />
         <ToggleRow label="Lower music while the coach talks" hint="Music and podcasts get quieter for each update, then come back." value={s.duckMusic} onChange={(duckMusic) => update({ duckMusic })} />
+      </Card>
+
+      <SectionLabel>Run reminders</SectionLabel>
+      <Card>
+        {remindersAvailable() ? (
+          <>
+            <ToggleRow label="Remind me on run days" hint={`A notification on your ${s.runDays.length === 7 ? 'running' : 'planned'} days, with your next plan session.`} value={s.reminders} onChange={toggleReminders} />
+            {s.reminders ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                {['07:00', '08:00', '12:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map((time) => (
+                  <Chip key={time} small label={time} active={s.reminderTime === time} onPress={() => update({ reminderTime: time }).then(syncReminders)} />
+                ))}
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <Text style={{ color: t.muted, lineHeight: 20 }}>Reminders need the newest version of the app. Make a new build (see docs/STANDALONE.md) to switch them on.</Text>
+        )}
       </Card>
 
       <SectionLabel>Headphones</SectionLabel>

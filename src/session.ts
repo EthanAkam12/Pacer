@@ -47,7 +47,14 @@ class RunSession {
   private dist = 0;
   private samples: { t: number; d: number }[] = [];
   private lastPos: { lat: number; lon: number; t: number } | null = null;
-  private route: { lat: number; lon: number }[] = [];
+  private route: { lat: number; lon: number; t?: number }[] = [];
+  // auto-pause, treadmill and ghost
+  private autoPaused = false;
+  private lastMoveT = 0;
+  private anchor: { lat: number; lon: number } | null = null;
+  private lastTreadT = 0;
+  private ghostNextD = 500;
+  private ghostGap: number | null = null;
   private track: { t: number; d: number }[] = []; // whole run, one point a tick, for best efforts
 
   // km splits
@@ -97,6 +104,7 @@ class RunSession {
     this.flags = new Set(); this.slowSince = null; this.slowNow = false; this.lastSlowWarn = -999; this.warnedAt = -999;
     this.lastHrWarn = -999; this.nextHrT = 0; this.nextHrD = 0; this.lastSpoke = 0; this.lastMotivate = 0; this.coachLine = ''; this.gpsStatus = ''; this.notice = null;
     this.hrSum = 0; this.hrN = 0; this.hrMax = 0; this.simHr = 105; this.recordId = null;
+    this.autoPaused = false; this.lastMoveT = 0; this.anchor = null; this.lastTreadT = 0; this.ghostNextD = 500; this.ghostGap = null;
   }
 
   // ---------- public API ----------
@@ -108,12 +116,13 @@ class RunSession {
     this.lines = COACHES[plan.coach] ?? COACHES.friendly;
     configureSpeech({ voiceId: plan.voiceId, rate: plan.voiceRate, pitch: plan.voicePitch, duckMusic: plan.duckMusic });
 
-    if (!plan.simulate) {
+    if (!plan.simulate && !plan.treadmill) {
       const res = await startTracking((locs) => this.onLocations(locs));
       if (!res.ok) return res;
       this.notice = res.message;
       this.gpsStatus = 'Finding GPS…';
     }
+    if (plan.treadmill) this.flags.add('gps');
 
     this.phase = 'running';
     this.startedAt = Date.now();
@@ -145,14 +154,18 @@ class RunSession {
     this.emit();
   }
 
-  resume() {
+  resume(spoken = true) {
     if (this.phase !== 'paused') return;
     this.phase = 'running';
     this.segStart = this.now();
     this.lastPos = null; // don't count distance moved while paused
     this.samples = [];
     this.slowSince = null;
-    this.say(vary(this.lines.resumed), true);
+    this.autoPaused = false;
+    this.anchor = null;
+    this.lastMoveT = this.elapsed();
+    this.lastTreadT = this.elapsed();
+    if (spoken) this.say(vary(this.lines.resumed), true);
     this.emit();
   }
 
@@ -186,10 +199,17 @@ class RunSession {
     let recordId: string | null = null;
     if (t >= 30 || this.dist >= 50) {
       this.track.push({ t, d: this.dist });
-      const bests = bestEfforts(this.track);
+      // Treadmill distances are estimates, so they don't count for records or ranks.
+      const bests = p.treadmill ? {} : bestEfforts(this.track);
       // Practice runs only compete with other practice runs, so the PB cue can be heard indoors.
       const earlier = await loadRuns().then((rs) => rs.filter((r) => r.simulated === p.simulate)).catch(() => null);
-      const pbs = earlier ? newPbs(bests, earlier) : [];
+      const pbs = earlier && !p.treadmill ? newPbs(bests, earlier) : [];
+      const gt = p.ghost && reached ? this.ghostTime(this.dist) : null;
+      const ghostGap = gt === null ? undefined : Math.round(gt - t);
+      if (ghostGap !== undefined) {
+        const n = Math.abs(ghostGap);
+        this.say(n < 1 ? `A dead heat with ${p.ghost!.label}!` : ghostGap > 0 ? `You beat ${p.ghost!.label} by ${sayTime(n)}!` : `${cap(p.ghost!.label)} won by ${sayTime(n)}. Next time!`, true);
+      }
       const top = [...PB_DISTANCES].reverse().find((d) => pbs.includes(d.key));
       if (top) this.say(vary(this.lines.pb(top.spoken, sayTime(bests[top.key]))), true);
       const record: RunRecord = {
@@ -209,6 +229,10 @@ class RunSession {
         simulated: p.simulate,
         bests,
         pbs,
+        track: thinTrack(this.track, 300),
+        ...(p.treadmill ? { treadmill: true } : {}),
+        ...(p.shoeId ? { shoeId: p.shoeId } : {}),
+        ...(ghostGap !== undefined ? { ghostGap, ghostLabel: p.ghost!.label } : {}),
         ...(p.planSession && reached ? { planSession: p.planSession } : {}),
       };
       try { await saveRun(record); recordId = record.id; } catch { recordId = null; }
@@ -281,6 +305,10 @@ class RunSession {
       stepProgress,
       recordId: this.recordId,
       simulated: !!p?.simulate,
+      autoPaused: this.autoPaused,
+      treadmill: !!p?.treadmill,
+      ghostGap: this.ghostGap,
+      ghostLabel: p?.ghost?.label ?? null,
     };
   }
 
@@ -296,6 +324,7 @@ class RunSession {
 
   private addDistance(d: number) {
     this.dist += d;
+    this.lastMoveT = this.elapsed();
     this.samples.push({ t: this.elapsed(), d: this.dist });
   }
 
@@ -314,7 +343,9 @@ class RunSession {
   private liveHr() { return this.plan?.simulate && this.phase !== 'idle' ? Math.round(this.simHr) : hrStore.current(); }
 
   private onLocations(locs: LocationObject[]) {
-    if (this.phase !== 'running' || !this.plan || this.plan.simulate) return;
+    if (!this.plan || this.plan.simulate) return;
+    if (this.phase === 'paused' && this.autoPaused) { this.checkAutoResume(locs); return; }
+    if (this.phase !== 'running') return;
     for (const l of locs) {
       const accuracy = l.coords.accuracy ?? 99;
       if (accuracy > 35) {
@@ -325,9 +356,10 @@ class RunSession {
       if (!this.flags.has('gps')) {
         this.flags.add('gps');
         this.gpsStatus = '';
+        this.lastMoveT = this.elapsed();
         this.say('GPS locked.', false);
       }
-      if (!this.lastPos) { this.lastPos = pt; this.addRoute(pt); continue; }
+      if (!this.lastPos) { this.lastPos = pt; this.addRoute(pt); this.lastMoveT = this.elapsed(); continue; }
       const d = haversine(this.lastPos, pt);
       const dt = (pt.t - this.lastPos.t) / 1000;
       if (d < 3) continue; // standing-still jitter
@@ -339,9 +371,81 @@ class RunSession {
     this.tick(false);
   }
 
-  private addRoute(pt: { lat: number; lon: number }) {
+  private addRoute(pt: { lat: number; lon: number; t: number }) {
     const last = this.route[this.route.length - 1];
-    if (!last || haversine(last, pt) >= 8) this.route.push({ lat: pt.lat, lon: pt.lon });
+    if (!last || haversine(last, pt) >= 8) this.route.push({ lat: pt.lat, lon: pt.lon, t: pt.t });
+  }
+
+  // ---------- auto-pause ----------
+
+  /** Stopped for 10 seconds (with GPS locked, and not in a rest step): pause the clock. */
+  private checkAutoPause(t: number) {
+    const p = this.plan!;
+    if (!p.autoPause || p.simulate || p.treadmill || !this.flags.has('gps') || t < 20) return;
+    if (this.steps[this.stepIdx]?.kind === 'rest') { this.lastMoveT = t; return; }
+    if (t - this.lastMoveT < 10) return;
+    this.acc += this.now() - this.segStart;
+    this.phase = 'paused';
+    this.autoPaused = true;
+    this.anchor = this.lastPos ? { lat: this.lastPos.lat, lon: this.lastPos.lon } : null;
+    this.say("Auto-paused. I'll carry on when you start moving.", true);
+    this.emit();
+  }
+
+  /** Moved 12 metres from where the auto-pause happened: start the clock again. */
+  private checkAutoResume(locs: LocationObject[]) {
+    for (const l of locs) {
+      if ((l.coords.accuracy ?? 99) > 35) continue;
+      const pt = { lat: l.coords.latitude, lon: l.coords.longitude };
+      if (!this.anchor) { this.anchor = pt; continue; }
+      if (haversine(this.anchor, pt) > 12) {
+        this.resume(false);
+        this.say('And we\'re off again.', true);
+        return;
+      }
+    }
+  }
+
+  // ---------- treadmill ----------
+
+  /** Treadmill runs: distance from the set speed (run steps and distance runs), 5 km/h for walks, nothing for rests. */
+  private treadStep() {
+    const p = this.plan!;
+    const t = this.elapsed();
+    const dt = Math.max(0, t - this.lastTreadT);
+    this.lastTreadT = t;
+    const kind = p.mode === 'intervals' ? this.steps[this.stepIdx]?.kind : 'run';
+    const kmh = kind === 'run' ? p.treadmillKmh ?? 10 : kind === 'walk' ? 5 : 0;
+    if (kmh > 0) this.addDistance((kmh / 3.6) * dt);
+  }
+
+  // ---------- ghost runner ----------
+
+  /** Seconds the ghost took to reach distance `d`, or null if it never got that far. */
+  private ghostTime(d: number): number | null {
+    const g = this.plan?.ghost?.track;
+    if (!g || g.length < 2 || d > g[g.length - 1].d) return null;
+    let i = g.findIndex((x) => x.d >= d);
+    if (i <= 0) return g[Math.max(0, i)].t;
+    const a = g[i - 1], b = g[i];
+    return a.t + ((d - a.d) / Math.max(1e-6, b.d - a.d)) * (b.t - a.t);
+  }
+
+  /** Every 500 m: how far ahead of or behind the ghost you are, in seconds. */
+  private checkGhost(t: number) {
+    const p = this.plan!;
+    if (!p.ghost) return;
+    const gt = this.ghostTime(this.dist);
+    this.ghostGap = gt === null ? null : Math.round(gt - t);
+    if (this.dist < this.ghostNextD) return;
+    this.ghostNextD += 500;
+    if (this.ghostGap === null) {
+      if (!this.flags.has('ghostDone')) { this.flags.add('ghostDone'); this.say(`You've gone further than ${p.ghost.label}. Keep it going!`, false); }
+      return;
+    }
+    const n = Math.abs(this.ghostGap);
+    const secs = `${n} ${n === 1 ? 'second' : 'seconds'}`;
+    this.say(n < 2 ? `Neck and neck with ${p.ghost.label}.` : this.ghostGap > 0 ? `You're ${secs} ahead of ${p.ghost.label}.` : `${cap(p.ghost.label)} is ${secs} ahead. Reel them in!`, false);
   }
 
   private simStep() {
@@ -373,6 +477,7 @@ class RunSession {
     if (this.phase !== 'running' || !this.plan) return;
     if (fromTimer) {
       if (this.plan.simulate) this.simStep();
+      else if (this.plan.treadmill) this.treadStep();
       else this.samples.push({ t: this.elapsed(), d: this.dist });
       this.track.push({ t: this.elapsed(), d: this.dist });
       const h = this.liveHr();
@@ -382,6 +487,7 @@ class RunSession {
       }
     }
     this.coach();
+    if (fromTimer && this.phase === 'running') this.checkAutoPause(this.elapsed());
     if (this.phase === 'running') this.emit();
   }
 
@@ -395,7 +501,8 @@ class RunSession {
 
     const step = this.steps[this.stepIdx];
     const running = p.mode === 'distance' || step?.kind === 'run';
-    if (running) this.checkSlowing(t); else { this.slowNow = false; this.slowSince = null; }
+    if (running && !p.treadmill) this.checkSlowing(t); else { this.slowNow = false; this.slowSince = null; }
+    if (p.mode === 'distance') this.checkGhost(t);
 
     const h = this.liveHr();
     if (h && h > p.maxHr * 0.93 && t - this.lastHrWarn > 90) {
@@ -610,3 +717,10 @@ function thin<T>(arr: T[], max: number): T[] {
 }
 
 export const session = new RunSession();
+
+/** Keeps about `n` evenly spaced points of a distance-over-time track (always the last one). */
+function thinTrack(track: { t: number; d: number }[], n: number) {
+  if (track.length <= n) return track.map((p) => ({ t: Math.round(p.t), d: Math.round(p.d) }));
+  const step = (track.length - 1) / (n - 1);
+  return Array.from({ length: n }, (_, i) => track[Math.round(i * step)]).map((p) => ({ t: Math.round(p.t), d: Math.round(p.d) }));
+}

@@ -46,6 +46,15 @@ export interface Plan {
   gentle?: boolean;
   /** The easier version of the plan session. */
   planEasier?: boolean;
+  /** Pause automatically when you stop moving (GPS runs). */
+  autoPause?: boolean;
+  /** Treadmill: no GPS; distance from the treadmill speed (walk steps 5 km/h, rest 0). */
+  treadmill?: boolean;
+  treadmillKmh?: number;
+  /** Ghost runner (Plus): a past run's distance-over-time to race against. */
+  ghost?: { label: string; track: { t: number; d: number }[] };
+  /** Shoes worn on this run. */
+  shoeId?: string | null;
 }
 
 export interface Split {
@@ -77,7 +86,8 @@ export interface RunRecord {
   maxHr: number | null;
   splits: Split[];
   intervals: IntervalResult[];
-  route: { lat: number; lon: number }[];
+  /** Route points; `t` (time, ms since 1970) is on runs recorded after GPX export was added. */
+  route: { lat: number; lon: number; t?: number }[];
   completed: boolean;
   simulated: boolean;
   /** Fastest time in seconds for each standard distance covered, keyed by metres. Missing on older runs. */
@@ -86,6 +96,14 @@ export interface RunRecord {
   pbs?: string[];
   /** Training plan session this run was for, e.g. "c25k:w3s2". */
   planSession?: string;
+  /** Distance over time (thinned), for racing this run as a ghost. */
+  track?: { t: number; d: number }[];
+  /** Treadmill run: distance is estimated (or corrected by hand) and it doesn't count for ranks or records. */
+  treadmill?: boolean;
+  shoeId?: string | null;
+  /** Seconds ahead (+) or behind (−) the ghost at the finish. */
+  ghostGap?: number;
+  ghostLabel?: string;
 }
 
 export interface Settings {
@@ -113,6 +131,20 @@ export interface Settings {
   weeklyGoalKm: number;
   /** Days of the week the runner can run (0 = Sunday). Plan sessions go on these days. */
   runDays: number[];
+  /** Pacer Plus switched on (for testing until payments are set up). */
+  plus: boolean;
+  /** Pause automatically when you stop moving (GPS runs only). */
+  autoPause: boolean;
+  /** Treadmill run: no GPS, distance worked out from the treadmill speed. */
+  treadmill: boolean;
+  treadmillKmh: string;
+  /** Run reminders on planned days, at this time ("18:00"). */
+  reminders: boolean;
+  reminderTime: string;
+  /** Shoes worn on new runs. */
+  shoeId: string | null;
+  /** Race a past run: 'off', 'best' (your fastest run at this distance) or a run id. Plus. */
+  ghost: string;
 }
 
 /** Progress through a training plan (src/plans.ts). */
@@ -153,4 +185,27 @@ export interface LiveSnapshot {
   stepProgress: number;
   recordId: string | null;
   simulated: boolean;
+  /** Paused automatically because the runner stopped moving. */
+  autoPaused: boolean;
+  treadmill: boolean;
+  /** Seconds ahead (+) or behind (−) the ghost runner, when racing one. */
+  ghostGap: number | null;
+  ghostLabel: string | null;
+}
+
+/** A pair of running shoes. Distance = startKm + every run saved with this shoeId. */
+export interface Shoe {
+  id: string;
+  name: string;
+  startKm: number;
+  limitKm: number;
+  retired?: boolean;
+  addedAt: string;
+}
+
+/** A race the runner is aiming for, counted down on the Run tab. */
+export interface Race {
+  name: string;
+  date: string; // YYYY-MM-DD
+  km: number;
 }

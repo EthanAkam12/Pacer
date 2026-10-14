@@ -2,18 +2,22 @@ import React, { useCallback, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Chip, Field, Screen, SectionLabel, Segmented, StepStrip, Title, ToggleRow } from '../../src/ui';
+import { Button, Card, Chip, Field, PlusLock, Screen, SectionLabel, Segmented, StepStrip, Title, ToggleRow } from '../../src/ui';
+import { usePlus } from '../../src/plus';
+import { syncReminders } from '../../src/reminders';
+import { ghostCandidates, pickGhost } from '../../src/ghost';
 import { useTheme } from '../../src/theme';
-import { HR_OPTIONS, loadPlan, loadRuns, loadSettings, loadWorkouts, saveSettings } from '../../src/storage';
-import { Plan, PlanProgress, RunMode, RunRecord, Settings, Workout } from '../../src/types';
-import { parsePace } from '../../src/format';
+import { HR_OPTIONS, loadPlan, loadRace, loadRuns, loadSettings, loadShoes, loadWorkouts, saveSettings } from '../../src/storage';
+import { daysUntil, shoeKm } from '../../src/gear';
+import { Plan, PlanProgress, Race, RunMode, RunRecord, Settings, Shoe, Workout } from '../../src/types';
+import { fmtShortDate, fmtTime, parsePace } from '../../src/format';
 import { estimateMinutes, summarize } from '../../src/intervals';
 import { session, SIM_SPEED } from '../../src/session';
 import { useDataVersion, useHr } from '../../src/hooks';
 import { weekStats } from '../../src/progress';
 import { scheduleSessions, weekDays, whenText } from '../../src/schedule';
 import { planById, PlanSession, sessionKey } from '../../src/plans';
-import { PlanCheckIn, PlanSessionCard, WeekGoalCard } from '../../src/progressUi';
+import { LinkRow, PlanCheckIn, PlanSessionCard, RaceCard, WeekGoalCard } from '../../src/progressUi';
 import { easierSession } from '../../src/planAdapt';
 import { connectStrap, disconnectStrap, scanForStraps } from '../../src/heartRate';
 import { personaFor } from '../../src/coach';
@@ -25,19 +29,23 @@ export default function StartScreen() {
   const t = useTheme();
   const router = useRouter();
   const hr = useHr();
+  const plus = usePlus();
   const [s, setS] = useState<Settings | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [progress, setProgress] = useState<PlanProgress | null>(null);
+  const [shoes, setShoes] = useState<Shoe[]>([]);
+  const [race, setRace] = useState<Race | null>(null);
   const version = useDataVersion();
 
   useFocusEffect(useCallback(() => {
     let alive = true;
-    Promise.all([loadSettings(), loadWorkouts(), loadRuns(), loadPlan()]).then(([st, w, r, pl]) => {
-      if (alive) { setS(st); setWorkouts(w); setRuns(r); setProgress(pl); }
+    Promise.all([loadSettings(), loadWorkouts(), loadRuns(), loadPlan(), loadShoes(), loadRace()]).then(([st, w, r, pl, sh, rc]) => {
+      if (alive) { setS(st); setWorkouts(w); setRuns(r); setProgress(pl); setShoes(sh); setRace(rc); }
     });
+    syncReminders();
     return () => { alive = false; };
   }, [version]));
 
@@ -49,6 +57,8 @@ export default function StartScreen() {
     saveSettings(next);
     setError('');
   };
+  const ghosts = s.mode === 'distance' ? ghostCandidates(runs, parseFloat(s.goalKm.replace(',', '.')) * 1000 || 0) : [];
+  const shoe = shoes.find((x) => x.id === s.shoeId && !x.retired) ?? null;
   const workout = workouts.find((w) => w.id === s.workoutId) ?? workouts[0] ?? null;
   const week = weekStats(runs, s.weeklyGoalKm);
   const activePlan = progress ? planById(progress.planId) : null;
@@ -67,6 +77,9 @@ export default function StartScreen() {
     if (mode === 'distance' && !(goalKm >= 0.2 && goalKm <= 200)) { setError('Enter a distance between 0.2 and 200 km.'); return; }
     if (!ps && s.targetPace.trim() && !(target && target >= 150 && target <= 1200)) { setError('Write target pace as minutes:seconds per km, for example 6:00.'); return; }
     if (mode === 'intervals' && !chosen) { setError('Choose an interval workout first.'); return; }
+    const kmh = parseFloat(s.treadmillKmh.replace(',', '.'));
+    if (s.treadmill && !(kmh >= 3 && kmh <= 30)) { setError('Enter a treadmill speed between 3 and 30 km/h.'); return; }
+    const ghost = plus && mode === 'distance' && !s.treadmill && !ps ? pickGhost(s.ghost, runs, goalKm * 1000) : null;
     const maxHr = parseInt(s.maxHr, 10);
     const persona = personaFor(s.coach);
     setStarting(true);
@@ -87,6 +100,10 @@ export default function StartScreen() {
       hrEvery: s.hrEvery,
       duckMusic: s.duckMusic,
       weeklyGoalKm: s.weeklyGoalKm,
+      autoPause: s.autoPause,
+      ...(s.treadmill ? { treadmill: true, treadmillKmh: kmh } : {}),
+      ...(ghost ? { ghost } : {}),
+      shoeId: shoe?.id ?? null,
       ...(ps && activePlan ? {
         planSession: sessionKey(activePlan.id, ps),
         planLabel: `${activePlan.name}. ${ps.title}${easier ? ', the easier version' : ''}.`,
@@ -105,6 +122,10 @@ export default function StartScreen() {
       <Title sub="Pick a run and Pacer will coach you through it.">Ready to run?</Title>
 
       <WeekGoalCard w={week} days={days} onSchedule={() => router.push('/schedule')} />
+
+      {race && daysUntil(race) >= 0 ? (
+        <RaceCard race={race} planEnd={upcoming.length ? upcoming[upcoming.length - 1].date : null} onPress={() => router.push('/race')} />
+      ) : null}
 
       {activePlan ? (
         <>
@@ -149,7 +170,33 @@ export default function StartScreen() {
             onChange={(splitEvery) => update({ splitEvery })}
           />
         </Card>
-      ) : (
+      ) : null}
+
+      {s.mode === 'distance' && !s.treadmill ? (
+        plus ? (
+          <Card>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Ionicons name="people" size={20} color={t.accent} />
+              <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, flex: 1 }}>Ghost runner</Text>
+            </View>
+            {ghosts.length ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <Chip small label="Off" active={s.ghost === 'off'} onPress={() => update({ ghost: 'off' })} />
+                <Chip small label="Your best" active={s.ghost === 'best'} onPress={() => update({ ghost: 'best' })} />
+                {ghosts.slice(0, 4).map((r) => (
+                  <Chip key={r.id} small label={`${fmtShortDate(r.startedAt)} · ${fmtTime(r.duration)}`} active={s.ghost === r.id} onPress={() => update({ ghost: r.id })} />
+                ))}
+              </View>
+            ) : (
+              <Text style={{ color: t.muted, lineHeight: 20 }}>Run {s.goalKm} km once and you can race that run as a ghost next time.</Text>
+            )}
+          </Card>
+        ) : (
+          <PlusLock title="Race a ghost" text="Race your best run live, with the coach telling you how far ahead or behind you are." onPress={() => router.push('/plus')} />
+        )
+      ) : null}
+
+      {s.mode === 'intervals' ? (
         <Card>
           {workout ? (
             <>
@@ -165,7 +212,7 @@ export default function StartScreen() {
           <View style={{ height: 14 }} />
           <Field label="Target pace for run intervals (optional)" placeholder="5:30" value={s.targetPace} onChangeText={(targetPace) => update({ targetPace })} keyboardType="numbers-and-punctuation" />
         </Card>
-      )}
+      ) : null}
 
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -208,6 +255,19 @@ export default function StartScreen() {
       <Card>
         <ToggleRow label="Voice coaching" hint="Pace, distance, splits and encouragement in your ear." value={s.voice} onChange={(voice) => update({ voice })} />
         <ToggleRow label="Practice mode" hint={`Simulated run at ${SIM_SPEED}× speed so you can test the coach indoors.`} value={s.simulate} onChange={(simulate) => update({ simulate })} />
+        <ToggleRow label="Auto-pause" hint="Pauses the clock when you stop, like at traffic lights, and starts again when you move." value={s.autoPause} onChange={(autoPause) => update({ autoPause })} />
+        <ToggleRow label="Treadmill" hint="No GPS. Distance comes from the treadmill speed, and you can correct it afterwards." value={s.treadmill} onChange={(treadmill) => update({ treadmill })} />
+        {s.treadmill ? (
+          <Field label="Treadmill speed (km/h)" hint="For runs and run intervals. Walks count as 5 km/h." value={s.treadmillKmh} onChangeText={(treadmillKmh) => update({ treadmillKmh })} keyboardType="decimal-pad" />
+        ) : null}
+      </Card>
+
+      <Card style={{ paddingVertical: 4 }}>
+        <LinkRow icon="footsteps" label={shoe ? `Shoes: ${shoe.name}` : 'Shoes'}
+          sub={shoe ? `${shoeKm(shoe, runs).toFixed(0)} of about ${shoe.limitKm} km${shoeKm(shoe, runs) >= shoe.limitKm ? ' · time for new ones!' : ''}` : 'Track how far your shoes have gone'}
+          onPress={() => router.push('/shoes')} />
+        {!race || daysUntil(race) < 0 ? <LinkRow icon="flag" label="Add a race" sub="Count down to a race and check your plan fits" onPress={() => router.push('/race')} /> : null}
+        <LinkRow icon="body" label="Warm up first" sub="5-minute spoken warm-up" onPress={() => router.push('/routine/warmup')} />
       </Card>
 
       {error ? <Text style={{ color: t.danger, marginBottom: 12, fontWeight: '600' }}>{error}</Text> : null}

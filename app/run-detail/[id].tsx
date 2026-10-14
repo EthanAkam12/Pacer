@@ -6,10 +6,10 @@ import { BarChart } from '../../src/charts';
 import { RunMap } from '../../src/map';
 import { planById } from '../../src/plans';
 import { PB_DISTANCES, runBests } from '../../src/records';
-import { Button, Card, Screen, SectionLabel, Stat } from '../../src/ui';
+import { Button, Card, Chip, Field, Screen, SectionLabel, Stat } from '../../src/ui';
 import { kindColor, useTheme } from '../../src/theme';
-import { deleteRun, getRun } from '../../src/storage';
-import { PlanProgress, RunRecord } from '../../src/types';
+import { deleteRun, getRun, loadShoes, updateRun } from '../../src/storage';
+import { PlanProgress, RunRecord, Shoe } from '../../src/types';
 import { Feel, FEELS, PlanAttempt, attemptFor, currentWeek, restartFrom, setFeel, struggling } from '../../src/planAdapt';
 import { fmtDate, fmtKm, fmtPace, fmtTime } from '../../src/format';
 
@@ -52,6 +52,12 @@ export default function RunDetail() {
       <Button small label="Share this run" onPress={() => router.push(`/share/${run.id}`)} style={{ alignSelf: 'flex-start', marginBottom: 14 }} />
 
       <FeelCard runId={run.id} />
+
+      {run.treadmill ? <TreadmillFix run={run} onSaved={setRun} /> : null}
+
+      {Date.now() - Date.parse(run.startedAt) < 6 * 3600e3 && !run.simulated ? (
+        <Button variant="secondary" label="Cool down: 5-minute stretches" onPress={() => router.push('/routine/stretch')} style={{ marginBottom: 12 }} />
+      ) : null}
 
       <Card>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -139,6 +145,7 @@ export default function RunDetail() {
         </Card>
       ) : null}
 
+      <ShoePicker run={run} onSaved={setRun} />
       <Button variant="danger" label="Delete run" onPress={remove} style={{ marginTop: 8 }} />
     </Screen>
   );
@@ -203,6 +210,61 @@ function FeelCard({ runId }: { runId: string }) {
         </View>
       ) : null}
       {message ? <Text style={{ color: t.accent, fontWeight: '700', marginTop: 12 }}>{message}</Text> : null}
+    </Card>
+  );
+}
+
+/** Treadmill runs: the distance is an estimate, so let the runner type in what the treadmill showed. */
+function TreadmillFix({ run, onSaved }: { run: RunRecord; onSaved: (r: RunRecord) => void }) {
+  const t = useTheme();
+  const [km, setKm] = useState((run.distance / 1000).toFixed(2));
+  const [error, setError] = useState('');
+  async function save() {
+    const v = parseFloat(km.replace(',', '.'));
+    if (!(v > 0 && v < 200)) { setError('Enter the distance in km, for example 5.2'); return; }
+    const f = (v * 1000) / Math.max(1, run.distance);
+    const next: RunRecord = {
+      ...run,
+      distance: v * 1000,
+      avgPace: run.duration / v,
+      splits: run.splits.map((x) => ({ ...x, distance: x.distance * f, pace: x.pace / f })),
+      track: run.track?.map((p) => ({ t: p.t, d: Math.round(p.d * f) })),
+    };
+    await updateRun(next);
+    setError('');
+    onSaved(next);
+  }
+  return (
+    <Card>
+      <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>Treadmill run</Text>
+      <Text style={{ color: t.muted, marginTop: 2, marginBottom: 10, lineHeight: 20 }}>
+        The distance was worked out from the speed you set. If your treadmill showed something different, put it here. Treadmill runs don't count for records or ranks.
+      </Text>
+      <Field label="Distance on the treadmill (km)" value={km} onChangeText={setKm} keyboardType="decimal-pad" />
+      {error ? <Text style={{ color: t.danger, marginBottom: 8 }}>{error}</Text> : null}
+      <Button small label="Save distance" onPress={save} style={{ alignSelf: 'flex-start' }} />
+    </Card>
+  );
+}
+
+/** Which shoes this run was in (only shown once you've added shoes). */
+function ShoePicker({ run, onSaved }: { run: RunRecord; onSaved: (r: RunRecord) => void }) {
+  const t = useTheme();
+  const [shoes, setShoes] = useState<Shoe[]>([]);
+  useEffect(() => { loadShoes().then(setShoes); }, []);
+  const list = shoes.filter((x) => !x.retired || x.id === run.shoeId);
+  if (!list.length) return null;
+  async function choose(id: string) {
+    const next = { ...run, shoeId: run.shoeId === id ? null : id };
+    await updateRun(next);
+    onSaved(next);
+  }
+  return (
+    <Card>
+      <Text style={{ color: t.text, fontWeight: '700', marginBottom: 8 }}>Shoes</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {list.map((x) => <Chip key={x.id} small label={x.name} active={run.shoeId === x.id} onPress={() => choose(x.id)} />)}
+      </View>
     </Card>
   );
 }

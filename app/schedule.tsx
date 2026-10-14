@@ -5,6 +5,7 @@ import { Card, Screen, SectionLabel } from '../src/ui';
 import { useTheme } from '../src/theme';
 import { loadPlan, loadSettings, saveSettings } from '../src/storage';
 import { planById } from '../src/plans';
+import { syncReminders } from '../src/reminders';
 import { DAY_SHORT, WEEK_ORDER, dayList, planDays } from '../src/schedule';
 import { PlanProgress, Settings } from '../src/types';
 
@@ -27,7 +28,7 @@ export default function ScheduleScreen() {
     if (on && s.runDays.length === 1) return; // keep at least one day
     const next = { ...s, runDays: on ? s.runDays.filter((d) => d !== day) : [...s.runDays, day].sort() };
     setS(next);
-    saveSettings(next);
+    saveSettings(next).then(syncReminders);
   }
 
   const plan = progress ? planById(progress.planId) : null;
