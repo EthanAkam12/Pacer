@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
  * switched on from the Pacer Plus screen for testing. The flag lives in Settings and is mirrored
  * here so any screen can check it synchronously.
  */
-export const PLUS_PRICE = { month: '£2.99', year: '£19.99', trialDays: 7 };
+export const PLUS_PRICE = { month: '£3.99', year: '£29.99', trialDays: 7 };
 
 export const PLUS_BENEFITS: { icon: string; title: string; text: string }[] = [
   { icon: 'sparkles', title: 'Personal adaptive plans', text: 'Tell Pacer your goal and race date. It builds a plan around your fitness and free days, then adjusts your paces as you go.' },
