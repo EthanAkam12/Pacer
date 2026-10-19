@@ -18,7 +18,7 @@ export function AdvancedStats({ runs, maxHr }: { runs: RunRecord[]; maxHr: numbe
     return (
       <>
         <SectionLabel>Advanced stats</SectionLabel>
-        <PlusLock title="Advanced stats" text="Training load, a fitness score (VO2 max), heart-rate zones and your year in review." onPress={() => router.push('/plus')} />
+        <PlusLock title="Advanced stats" text="Training load, a fitness score (VO2 max), heart-rate zones, a weekly coach report and your year in review." onPress={() => router.push('/plus')} />
       </>
     );
   }
@@ -67,6 +67,17 @@ export function AdvancedStats({ runs, maxHr }: { runs: RunRecord[]; maxHr: numbe
           <Text style={{ color: t.muted, lineHeight: 20 }}>Run with a heart-rate strap to see how much time you spend in each zone. Most of your running should be easy (zones 1–2).</Text>
         )}
       </Card>
+
+      <Pressable onPress={() => router.push('/weekly')} accessibilityRole="button">
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Ionicons name="newspaper" size={24} color={t.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16 }}>Weekly coach report</Text>
+            <Text style={{ color: t.muted }}>How last week went, and what to aim for this week</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={t.muted} />
+        </Card>
+      </Pressable>
 
       <Pressable onPress={() => router.push('/review')} accessibilityRole="button">
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

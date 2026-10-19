@@ -8,9 +8,10 @@ import { planById, planFor } from '../../src/plans';
 import { usePlus } from '../../src/plus';
 import { shareGpx } from '../../src/gpx';
 import { PB_DISTANCES, runBests } from '../../src/records';
-import { Button, Card, Chip, Field, Screen, SectionLabel, Stat } from '../../src/ui';
+import { Button, Card, Chip, Field, PlusLock, Screen, SectionLabel, Stat } from '../../src/ui';
+import { Review, reviewRun } from '../../src/coachReview';
 import { kindColor, useTheme } from '../../src/theme';
-import { deleteRun, getRun, loadShoes, updateRun } from '../../src/storage';
+import { deleteRun, getRun, loadRuns, loadSettings, loadShoes, updateRun } from '../../src/storage';
 import { PlanProgress, RunRecord, Shoe } from '../../src/types';
 import { Feel, FEELS, PlanAttempt, attemptFor, currentWeek, restartFrom, setFeel, struggling } from '../../src/planAdapt';
 import { fmtDate, fmtKm, fmtPace, fmtTime } from '../../src/format';
@@ -55,9 +56,21 @@ export default function RunDetail() {
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
         <Button small label="Share this run" onPress={() => router.push(`/share/${run.id}`)} />
         {run.route.length > 1 ? (
-          <Button small variant="secondary" label={plus ? 'Export GPX' : 'Export GPX ★'} onPress={() => (plus ? shareGpx(run).catch(() => {}) : router.push('/plus'))} />
+          <Button small variant="secondary" label="Export GPX" onPress={() => shareGpx(run).catch(() => {})} />
         ) : null}
       </View>
+      {run.raceGoal ? (
+        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Ionicons name="flag" size={22} color={t.accent} />
+          <Text style={{ flex: 1, color: t.text, fontWeight: '700', fontSize: 16 }}>
+            {run.completed
+              ? run.duration <= run.raceGoal
+                ? `Goal ${fmtTime(run.raceGoal)} smashed by ${fmtTime(Math.max(0, Math.round(run.raceGoal - run.duration)))} 🎉`
+                : `Goal ${fmtTime(run.raceGoal)}: ${fmtTime(Math.round(run.duration - run.raceGoal))} over`
+              : `Race mode, goal ${fmtTime(run.raceGoal)} (${run.raceStrategy === 'negative' ? 'negative split' : 'even pace'})`}
+          </Text>
+        </Card>
+      ) : null}
       {run.ghostGap !== undefined ? (
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Ionicons name="people" size={22} color={t.accent} />
@@ -68,6 +81,10 @@ export default function RunDetail() {
       ) : null}
 
       <FeelCard runId={run.id} />
+
+      {!run.simulated ? (plus ? <CoachReviewCard run={run} /> : (
+        <PlusLock title="Coach review" text="A short review of every run: what went well, what to work on and what to do next." onPress={() => router.push('/plus')} />
+      )) : null}
 
       {run.treadmill ? <TreadmillFix run={run} onSaved={setRun} /> : null}
 
@@ -281,6 +298,37 @@ function ShoePicker({ run, onSaved }: { run: RunRecord; onSaved: (r: RunRecord) 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {list.map((x) => <Chip key={x.id} small label={x.name} active={run.shoeId === x.id} onPress={() => choose(x.id)} />)}
       </View>
+    </Card>
+  );
+}
+
+/** Pacely Plus: the coach's written review of this run. */
+function CoachReviewCard({ run }: { run: RunRecord }) {
+  const t = useTheme();
+  const [review, setReview] = useState<Review | null>(null);
+  useEffect(() => {
+    Promise.all([loadRuns(), loadSettings()]).then(([all, s]) => {
+      const m = parseInt(s.maxHr, 10);
+      setReview(reviewRun(run, all, m >= 120 && m <= 230 ? m : 190));
+    });
+  }, [run]);
+  if (!review) return null;
+  const line = (icon: keyof typeof Ionicons.glyphMap, color: string, text: string) => (
+    <View key={text} style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+      <Ionicons name={icon} size={18} color={color} style={{ marginTop: 1 }} />
+      <Text style={{ flex: 1, color: t.text, lineHeight: 20 }}>{text}</Text>
+    </View>
+  );
+  return (
+    <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Ionicons name="chatbubbles" size={18} color={t.accent} />
+        <Text style={{ color: t.accent, fontWeight: '800' }}>Coach review</Text>
+      </View>
+      <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', marginTop: 4 }}>{review.headline}</Text>
+      {review.good.map((g) => line('checkmark-circle', t.accent, g))}
+      {review.improve.map((g) => line('arrow-up-circle', '#E0A100', g))}
+      <Text style={{ color: t.text, fontWeight: '700', marginTop: 12, lineHeight: 20 }}>{review.next}</Text>
     </Card>
   );
 }

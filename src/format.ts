@@ -36,6 +36,15 @@ export function parseDuration(str: string): number | null {
 }
 export const parsePace = parseDuration;
 
+/** "25:30" or "1:52:00" → seconds; null if it isn't a time. */
+export function parseClock(text: string): number | null {
+  const parts = text.trim().split(':').map((x) => x.trim());
+  if (parts.length < 2 || parts.length > 3 || parts.some((x) => !/^\d{1,2}$/.test(x))) return null;
+  const [a, b, c] = parts.map(Number);
+  const s = parts.length === 3 ? a * 3600 + b * 60 + c : a * 60 + b;
+  return s > 0 ? s : null;
+}
+
 // ----- spoken forms -----
 /** Said the way runners say it: 330 -> "5 30 per kilometre", 305 -> "5 oh 5 per kilometre". */
 export function sayPace(spk: number): string {

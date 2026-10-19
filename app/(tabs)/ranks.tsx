@@ -7,9 +7,10 @@ import { useTheme } from '../../src/theme';
 import { loadRuns, loadSettings } from '../../src/storage';
 import { allRanks, distanceOf, ladder, Rank, RANKED, rankFor, stepFor, WINDOW_DAYS } from '../../src/ranks';
 import { RankBadge } from '../../src/badge';
-import { Board, distanceBoard, fetchBoard, notSetUp, Row, syncMyEntry } from '../../src/leaderboard';
+import { Board, distanceBoard, fetchBoard, myArea, notSetUp, Row, syncMyEntry } from '../../src/leaderboard';
 import { useAuth } from '../../src/auth';
-import { friendsAndMe, Profile } from '../../src/friends';
+import { friendsAndMe, localProfiles, Profile } from '../../src/friends';
+import { usePlus } from '../../src/plus';
 import { useDataVersion } from '../../src/hooks';
 import { fmtPace, fmtShortDate, fmtTime } from '../../src/format';
 import { RunRecord } from '../../src/types';
@@ -29,7 +30,9 @@ export default function RanksScreen() {
   const [data, setData] = useState<{ rows: Row[]; me: Row | null } | null>(null);
   const [error, setError] = useState('');
   const [synced, setSynced] = useState(0);
-  const [scope, setScope] = useState<'everyone' | 'friends'>('everyone');
+  const [scope, setScope] = useState<'everyone' | 'friends' | 'local'>('everyone');
+  const [areaName, setAreaName] = useState<string | null>(null);
+  const plus = usePlus();
   const version = useDataVersion();
 
   const online = configured && !!user && !!username;
@@ -50,7 +53,12 @@ export default function RanksScreen() {
     if (!online || !synced) return;
     let alive = true;
     setData(null); setError('');
-    (scope === 'friends' ? friendsAndMe().then((ps) => friendsBoard(ps, board)) : fetchBoard(board))
+    const local = async () => {
+      const a = await myArea();
+      if (alive) setAreaName(a?.areaName ?? '');
+      return friendsBoard(a ? await localProfiles(a.area) : [], board);
+    };
+    (scope === 'friends' ? friendsAndMe().then((ps) => friendsBoard(ps, board)) : scope === 'local' ? local() : fetchBoard(board))
       .then((d) => alive && setData(d))
       .catch((e) => alive && setError(notSetUp(e) ? 'setup' : 'offline'));
     return () => { alive = false; };
@@ -149,7 +157,16 @@ export default function RanksScreen() {
         <Card><Text style={{ color: t.muted }}>Sign in to see the leaderboards.</Text></Card>
       ) : (
         <Card>
-          <Segmented<'everyone' | 'friends'> options={[{ label: 'Everyone', value: 'everyone' }, { label: 'Friends', value: 'friends' }]} value={scope} onChange={setScope} />
+          <Segmented<'everyone' | 'friends' | 'local'>
+            options={[{ label: 'Everyone', value: 'everyone' }, { label: 'Friends', value: 'friends' }, { label: plus ? 'Local' : 'Local ★', value: 'local' }]}
+            value={scope}
+            onChange={(v) => (v === 'local' && !plus ? router.push('/plus') : setScope(v))}
+          />
+          {scope === 'local' ? (
+            <Text style={{ color: t.text, fontWeight: '700', marginBottom: 4 }}>
+              {areaName === null ? 'Finding your area…' : areaName ? `📍 Best runners around ${areaName}` : 'Go for an outdoor run so Pacely knows your area.'}
+            </Text>
+          ) : null}
           {sel === 'overall' ? (
             <Segmented<OverallBoard> options={[{ label: 'Week', value: 'week' }, { label: 'All time', value: 'total' }, { label: 'Ranked', value: 'rank' }, { label: 'Trophies', value: 'trophies' }]} value={overallBoard} onChange={setOverallBoard} />
           ) : null}

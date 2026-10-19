@@ -6,6 +6,7 @@ import { configureSpeech, speak } from './speech';
 import { hrStore } from './heartRate';
 import { loadRuns, saveRun } from './storage';
 import { recordAttempt } from './planAdapt';
+import { chapterCue, storyById } from './stories';
 import { COACHES, CoachLines } from './coach';
 import { bestEfforts, newPbs, PB_DISTANCES } from './records';
 import { allRanks, RANKED, rankFor } from './ranks';
@@ -55,6 +56,8 @@ class RunSession {
   private lastTreadT = 0;
   private ghostNextD = 500;
   private ghostGap: number | null = null;
+  private raceNextD = 500;
+  private fastSince: number | null = null;
   private track: { t: number; d: number }[] = []; // whole run, one point a tick, for best efforts
 
   // km splits
@@ -104,7 +107,7 @@ class RunSession {
     this.flags = new Set(); this.slowSince = null; this.slowNow = false; this.lastSlowWarn = -999; this.warnedAt = -999;
     this.lastHrWarn = -999; this.nextHrT = 0; this.nextHrD = 0; this.lastSpoke = 0; this.lastMotivate = 0; this.coachLine = ''; this.gpsStatus = ''; this.notice = null;
     this.hrSum = 0; this.hrN = 0; this.hrMax = 0; this.simHr = 105; this.recordId = null;
-    this.autoPaused = false; this.lastMoveT = 0; this.anchor = null; this.lastTreadT = 0; this.ghostNextD = 500; this.ghostGap = null;
+    this.autoPaused = false; this.lastMoveT = 0; this.anchor = null; this.lastTreadT = 0; this.ghostNextD = 500; this.ghostGap = null; this.raceNextD = 500; this.fastSince = null;
   }
 
   // ---------- public API ----------
@@ -134,7 +137,8 @@ class RunSession {
 
     if (plan.mode === 'intervals' && plan.workout) {
       this.steps = expandWorkout(plan.workout);
-      this.say(vary(this.lines.workoutStart(plan.planLabel?.replace(/\.$/, '') ?? plan.workout.name)), true);
+      const story = storyById(plan.story);
+      this.say(story ? story.intro : vary(this.lines.workoutStart(plan.planLabel?.replace(/\.$/, '') ?? plan.workout.name)), true);
       this.announceStep(null);
     } else {
       const what = `${cap(sayDist(plan.goalMeters))}${plan.targetPace ? `, target pace ${sayPace(plan.targetPace)}` : ''}`;
@@ -188,7 +192,9 @@ class RunSession {
     if (p.mode === 'intervals' && this.stepIdx < this.steps.length) this.completeStep(t, false);
 
     const avg = this.dist > 50 ? t / (this.dist / 1000) : 0;
-    if (reached && p.mode === 'intervals') {
+    if (reached && p.mode === 'intervals' && storyById(p.story)) {
+      this.say(`${storyById(p.story)!.outro} ${cap(sayDist(this.dist))} in ${sayTime(t)}.`, true);
+    } else if (reached && p.mode === 'intervals') {
       this.say(vary(this.lines.workoutDone(sayDist(this.dist), sayTime(t))), true);
     } else if (reached) {
       this.say(vary(this.lines.finish(sayDist(p.goalMeters), sayTime(t), avg ? sayPace(avg) : null)), true);
@@ -204,6 +210,10 @@ class RunSession {
       // Practice runs only compete with other practice runs, so the PB cue can be heard indoors.
       const earlier = await loadRuns().then((rs) => rs.filter((r) => r.simulated === p.simulate)).catch(() => null);
       const pbs = earlier && !p.treadmill ? newPbs(bests, earlier) : [];
+      if (p.raceGoal && reached) {
+        const diff = Math.round(p.raceGoal.time - t), n = Math.abs(diff);
+        this.say(diff >= 0 ? `Race done in ${sayTime(Math.round(t))}. That's ${n < 1 ? 'exactly on' : `${sayTime(n)} under`} your goal. Brilliant!` : `Race done in ${sayTime(Math.round(t))}, ${sayTime(n)} over your goal. Great effort, and now you know where to find the time.`, true);
+      }
       const gt = p.ghost && reached ? this.ghostTime(this.dist) : null;
       const ghostGap = gt === null ? undefined : Math.round(gt - t);
       if (ghostGap !== undefined) {
@@ -233,6 +243,8 @@ class RunSession {
         ...(p.treadmill ? { treadmill: true } : {}),
         ...(p.shoeId ? { shoeId: p.shoeId } : {}),
         ...(ghostGap !== undefined ? { ghostGap, ghostLabel: p.ghost!.label } : {}),
+        ...(p.raceGoal ? { raceGoal: p.raceGoal.time, raceStrategy: p.raceGoal.strategy } : {}),
+        ...(p.story ? { story: p.story } : {}),
         ...(p.planSession && reached ? { planSession: p.planSession } : {}),
       };
       try { await saveRun(record); recordId = record.id; } catch { recordId = null; }
@@ -309,6 +321,8 @@ class RunSession {
       treadmill: !!p?.treadmill,
       ghostGap: this.ghostGap,
       ghostLabel: p?.ghost?.label ?? null,
+      raceGap: p?.raceGoal && this.dist > 50 ? Math.round(this.raceDue(this.dist) - t) : null,
+      raceProjected: p?.raceGoal && this.dist > 200 ? Math.round(this.raceProjection(t)) : null,
     };
   }
 
@@ -419,6 +433,53 @@ class RunSession {
     if (kmh > 0) this.addDistance((kmh / 3.6) * dt);
   }
 
+  // ---------- race mode ----------
+
+  /** Seconds the goal plan has used by distance `d`: even pace, or 2% slower then 2% faster (negative split). */
+  private raceDue(d: number): number {
+    const p = this.plan!, g = p.raceGoal!, D = p.goalMeters;
+    const avg = g.time / D; // seconds per metre
+    if (g.strategy === 'even') return avg * d;
+    const p1 = avg * 1.02, p2 = avg * 0.98;
+    return d <= D / 2 ? p1 * d : p1 * (D / 2) + p2 * (d - D / 2);
+  }
+
+  /** Finish time if the rest of the run goes like it has so far, relative to the plan. */
+  private raceProjection(t: number): number {
+    const p = this.plan!, due = this.raceDue(this.dist);
+    if (due <= 0) return p.raceGoal!.time;
+    return t + (p.raceGoal!.time - due) * (t / due);
+  }
+
+  /**
+   * Race mode: a warning if the first kilometre starts too fast, and between the km splits (at
+   * 1.5 km, 2.5 km…) how far ahead of or behind the goal plan you are, with the projected finish.
+   */
+  private checkRace(t: number) {
+    const p = this.plan!, g = p.raceGoal!;
+    const goalPace = (g.time / p.goalMeters) * 1000 * (g.strategy === 'negative' ? 1.02 : 1);
+    if (this.dist >= 300 && this.dist < 1500 && !this.flags.has('tooFast')) {
+      const cur = this.currentPace();
+      if (isFinite(cur) && cur < goalPace * 0.94) {
+        if (this.fastSince === null) this.fastSince = t;
+        if (t - this.fastSince >= 20) {
+          this.flags.add('tooFast');
+          this.say(`Easy now. You're running ${sayPace(cur)}, and your race plan starts at ${sayPace(goalPace)}. Settle in, the time comes later.`, true);
+        }
+      } else this.fastSince = null;
+    }
+    if (this.dist < this.raceNextD) return;
+    const mark = this.raceNextD;
+    this.raceNextD += 500;
+    if (p.splitEvery === 500 || mark % 1000 === 0 || p.goalMeters - mark < 300) return; // the split message covers it
+    const gap = Math.round(this.raceDue(mark) - t), n = Math.abs(gap);
+    const secs = `${n} ${n === 1 ? 'second' : 'seconds'}`;
+    const how = n < 4 ? `Right on your ${sayTime(g.time)} plan.`
+      : gap > 0 ? `${cap(secs)} ahead of your ${sayTime(g.time)} plan.${n > 20 ? ' Ease off a touch, save it for the finish.' : ''}`
+      : `${cap(secs)} behind your ${sayTime(g.time)} plan.${n > 10 ? ' Pick it up a little.' : ''}`;
+    this.say(`${how} On track for ${sayTime(Math.round(this.raceProjection(t)))}.`, false);
+  }
+
   // ---------- ghost runner ----------
 
   /** Seconds the ghost took to reach distance `d`, or null if it never got that far. */
@@ -501,8 +562,9 @@ class RunSession {
 
     const step = this.steps[this.stepIdx];
     const running = p.mode === 'distance' || step?.kind === 'run';
-    if (running && !p.treadmill) this.checkSlowing(t); else { this.slowNow = false; this.slowSince = null; }
+    if (running && !p.treadmill && !p.story) this.checkSlowing(t); else { this.slowNow = false; this.slowSince = null; }
     if (p.mode === 'distance') this.checkGhost(t);
+    if (p.mode === 'distance' && p.raceGoal) this.checkRace(t);
 
     const h = this.liveHr();
     if (h && h > p.maxHr * 0.93 && t - this.lastHrWarn > 90) {
@@ -527,12 +589,13 @@ class RunSession {
       if (p.mode === 'distance') {
         let msg = vary(this.lines.split(sayDist(this.nextSplit), sayPace(pace), sayDist(p.goalMeters - this.nextSplit)));
         msg = cap(msg);
-        if (p.targetPace) {
-          const diff = Math.round((this.nextSplit / 1000) * p.targetPace - t);
+        if (p.targetPace || p.raceGoal) {
+          const diff = Math.round((p.raceGoal ? this.raceDue(this.nextSplit) : (this.nextSplit / 1000) * p.targetPace!) - t);
           msg = join(msg, Math.abs(diff) < 5 ? vary(this.lines.onTarget)
             : diff > 0 ? vary(this.lines.ahead(sayTime(diff)))
             : vary(this.lines.behind(sayTime(-diff))));
         }
+        if (p.raceGoal) msg = join(msg, `On track for ${sayTime(Math.round(this.raceProjection(t)))}.`);
         if (hr && this.hrDueWithSplit()) msg = join(msg, this.hrLine(hr));
         if (!this.flags.has('half') && Math.abs(this.nextSplit - p.goalMeters / 2) < 1) { this.flags.add('half'); msg = join(msg, vary(this.lines.halfway)); }
         this.say(msg, true);
@@ -590,7 +653,9 @@ class RunSession {
 
     if (step.measure === 'time') {
       const left = step.value - st;
-      if (step.value >= 120 && st >= step.value / 2 && once('half')) this.say(`Halfway through this ${word}.`, false);
+      const chapter = storyById(this.plan!.story)?.chapters[this.stepIdx];
+      if (chapter?.mid && st >= step.value / 2 && once('half')) this.say(chapter.mid, true);
+      else if (!chapter && step.value >= 120 && st >= step.value / 2 && once('half')) this.say(`Halfway through this ${word}.`, false);
       if (step.value >= 30 && left <= 10 && left > 0 && once('ten')) this.say(`10 seconds left. ${then}`, true);
       if (left <= 0) this.completeStep(t, true);
     } else {
@@ -621,6 +686,8 @@ class RunSession {
   }
 
   private announceStep(prev: IntervalResult | null) {
+    const chapter = storyById(this.plan!.story)?.chapters[this.stepIdx];
+    if (chapter) { this.say(`${chapter.say} ${chapterCue(chapter)}`, true); return; }
     const step = this.steps[this.stepIdx];
     const n = this.steps.length;
     let msg = '';

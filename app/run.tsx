@@ -151,6 +151,9 @@ export default function RunScreen() {
           <Tile t={t} value={fmtTime(s.elapsed)} label="time" right />
           <Tile t={t} value={fmtPace(s.avgPace)} label="average pace" />
           <Tile t={t} value={s.hr ? String(s.hr) : '––'} label="heart rate" right />
+          {s.raceProjected !== null ? (
+            <Tile t={t} value={fmtTime(s.raceProjected)} label={s.raceGap === null ? 'projected finish' : `projected · ${s.raceGap >= 0 ? `${fmtTime(s.raceGap)} ahead` : `${fmtTime(-s.raceGap)} behind`}`} />
+          ) : null}
           {s.ghostLabel ? (
             <Tile t={t} value={s.ghostGap === null ? '––' : `${s.ghostGap >= 0 ? '+' : '−'}${fmtTime(Math.abs(s.ghostGap))}`}
               label={s.ghostGap === null ? `vs ${s.ghostLabel}` : s.ghostGap >= 0 ? `ahead of ${s.ghostLabel}` : `behind ${s.ghostLabel}`} />

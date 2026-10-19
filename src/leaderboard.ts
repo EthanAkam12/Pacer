@@ -1,8 +1,9 @@
 import {
-  collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, orderBy, query, QueryConstraint, serverTimestamp, setDoc, where,
+  collection, deleteDoc, deleteField, doc, getCountFromServer, getDoc, getDocs, limit, orderBy, query, QueryConstraint, serverTimestamp, setDoc, where,
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { loadRuns, loadSettings } from './storage';
+import { loadRuns, loadSettings, saveSettings } from './storage';
+import { geohash, placeName } from './geo';
 import { personalBests } from './records';
 import { RANKED, rankFor } from './ranks';
 import { weekStats } from './progress';
@@ -68,9 +69,27 @@ export async function syncMyEntry(): Promise<void> {
     name, tier: rank.id, totalKm, ...bests, ...(rank.score ? { rankScore: rank.score } : {}),
     weekKm, weekKey: weekKey(), runs: count, recent, streak, updatedAt: serverTimestamp(),
   }, { merge: true });
+  // Local leaderboard: the town of your latest outdoor run. Written separately so older
+  // Firestore rules (without these fields) can't stop the rest of the profile updating.
+  const local = s.localBoard ? await myArea(runs) : null;
+  await setDoc(doc(r.db, 'profiles', r.uid), { ...(local ? { area: local.area, areaName: local.areaName } : { area: deleteField(), areaName: deleteField() }), updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
   const entry = doc(r.db, 'weeks', weekKey(), 'entries', r.uid);
   if (weekKm > 0) await setDoc(entry, { name, tier: rank.id, km: weekKm, updatedAt: serverTimestamp() });
   else await deleteDoc(entry).catch(() => {});
+}
+
+/** The area of the latest outdoor run, with its place name (looked up once per area and cached in Settings). */
+export async function myArea(runs?: RunRecord[]): Promise<{ area: string; areaName: string } | null> {
+  const list = runs ?? (await loadRuns());
+  const run = list.filter((x) => !x.simulated && !x.treadmill && x.route.length).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+  if (!run) return null;
+  const { lat, lon } = run.route[0];
+  const area = geohash(lat, lon);
+  const s = await loadSettings();
+  if (s.area === area && s.areaName) return { area, areaName: s.areaName };
+  const areaName = (await placeName(lat, lon)) || 'your area';
+  await saveSettings({ ...(await loadSettings()), area, areaName });
+  return { area, areaName };
 }
 
 export async function removeMyEntry(): Promise<void> {

@@ -55,6 +55,10 @@ export interface Plan {
   ghost?: { label: string; track: { t: number; d: number }[] };
   /** Shoes worn on this run. */
   shoeId?: string | null;
+  /** Race mode (Plus): a goal finish time, paced evenly or with a negative split. */
+  raceGoal?: { time: number; strategy: 'even' | 'negative' };
+  /** Story run (Plus): the story id; the workout is the story's steps. */
+  story?: string;
 }
 
 export interface Split {
@@ -104,6 +108,11 @@ export interface RunRecord {
   /** Seconds ahead (+) or behind (−) the ghost at the finish. */
   ghostGap?: number;
   ghostLabel?: string;
+  /** Race mode goal (seconds) and strategy. */
+  raceGoal?: number;
+  raceStrategy?: 'even' | 'negative';
+  /** Story run id. */
+  story?: string;
 }
 
 export interface Settings {
@@ -145,6 +154,17 @@ export interface Settings {
   shoeId: string | null;
   /** Race a past run: 'off', 'best' (your fastest run at this distance) or a run id. Plus. */
   ghost: string;
+  /** Race mode (Plus): goal finish time ("24:30" or "1:55:00") and pacing strategy. */
+  raceMode: boolean;
+  raceGoalTime: string;
+  raceStrategy: 'even' | 'negative';
+  /** Story run chosen for the next run (Plus), or null. */
+  story: string | null;
+  /** Appear on the local leaderboard for the area of your latest run (town level only). */
+  localBoard: boolean;
+  /** Cached area (4-character geohash) and its place name. */
+  area: string;
+  areaName: string;
 }
 
 /** Progress through a training plan (src/plans.ts). */
@@ -193,6 +213,9 @@ export interface LiveSnapshot {
   /** Seconds ahead (+) or behind (−) the ghost runner, when racing one. */
   ghostGap: number | null;
   ghostLabel: string | null;
+  /** Race mode: seconds ahead (+) or behind (−) the goal plan, and the projected finish time. */
+  raceGap: number | null;
+  raceProjected: number | null;
 }
 
 /** A pair of running shoes. Distance = startKm + every run saved with this shoeId. */

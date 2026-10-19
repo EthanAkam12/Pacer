@@ -2,7 +2,7 @@ import { Share } from 'react-native';
 import { RunRecord } from './types';
 
 /**
- * GPX export (Pacely Plus): the route as a standard GPX track that Strava, Garmin Connect and most
+ * GPX export (free): the route as a standard GPX track that Strava, Garmin Connect and most
  * running apps can import. Runs recorded since GPX export was added have a time on each point;
  * older ones get times spread evenly across the run.
  */

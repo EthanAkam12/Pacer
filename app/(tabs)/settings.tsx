@@ -140,6 +140,9 @@ export default function SettingsScreen() {
       <Card>
         {configured && user ? <Row icon="at" label={username ?? 'Choose a username'} sub="Username: tap to change" onPress={() => router.push('/change-username')} /> : null}
         <ToggleRow label="Show me on leaderboards" hint="Turn off to remove your name, rank and times from the leaderboards." value={s.leaderboards} onChange={(leaderboards) => updateBoard({ leaderboards })} />
+        {s.leaderboards ? (
+          <ToggleRow label="Show me on my local leaderboard" hint="Shares only the town of your latest run (an area about 40 km across), never your route or exact location." value={s.localBoard} onChange={(localBoard) => updateBoard({ localBoard })} />
+        ) : null}
       </Card>
 
       <SectionLabel>Weekly goal and schedule</SectionLabel>

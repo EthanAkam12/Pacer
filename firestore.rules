@@ -26,7 +26,9 @@ service cloud.firestore {
       allow create, update: if isMe(uid)
         && request.resource.data.keys().hasOnly(['name', 'tier', 'rankScore', 'totalKm',
              'best1000', 'best1609', 'best5000', 'best10000', 'best21097', 'best42195',
-             'weekKm', 'weekKey', 'runs', 'recent', 'streak', 'trophies', 'runningSince', 'updatedAt'])
+             'weekKm', 'weekKey', 'runs', 'recent', 'streak', 'trophies', 'runningSince', 'updatedAt', 'area', 'areaName'])
+        && (!('area' in request.resource.data) || (request.resource.data.area is string && request.resource.data.area.size() <= 6))
+        && (!('areaName' in request.resource.data) || (request.resource.data.areaName is string && request.resource.data.areaName.size() <= 40))
         && (!('trophies' in request.resource.data) || (request.resource.data.trophies is int && request.resource.data.trophies >= 0 && request.resource.data.trophies < 10000))
         && (!('runningSince' in request.resource.data) || request.resource.data.runningSince == request.time
             || (resource != null && request.resource.data.runningSince == resource.data.runningSince))

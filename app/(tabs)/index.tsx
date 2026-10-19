@@ -6,11 +6,12 @@ import { Button, Card, Chip, Field, PlusLock, Screen, SectionLabel, Segmented, S
 import { usePlus } from '../../src/plus';
 import { syncReminders } from '../../src/reminders';
 import { ghostCandidates, pickGhost } from '../../src/ghost';
+import { storyById, storyMinutes, storyWorkout } from '../../src/stories';
 import { useTheme } from '../../src/theme';
 import { HR_OPTIONS, loadPlan, loadRace, loadRuns, loadSettings, loadShoes, loadWorkouts, saveSettings } from '../../src/storage';
 import { daysUntil, shoeKm } from '../../src/gear';
 import { Plan, PlanProgress, Race, RunMode, RunRecord, Settings, Shoe, Workout } from '../../src/types';
-import { fmtShortDate, fmtTime, parsePace } from '../../src/format';
+import { fmtPace, fmtShortDate, fmtTime, parseClock, parsePace, sayTime } from '../../src/format';
 import { estimateMinutes, summarize } from '../../src/intervals';
 import { session, SIM_SPEED } from '../../src/session';
 import { useDataVersion, useHr } from '../../src/hooks';
@@ -59,6 +60,8 @@ export default function StartScreen() {
     setError('');
   };
   const ghosts = s.mode === 'distance' ? ghostCandidates(runs, parseFloat(s.goalKm.replace(',', '.')) * 1000 || 0) : [];
+  const goalKmNum = parseFloat(s.goalKm.replace(',', '.')) || 0;
+  const raceGoalSecs = parseClock(s.raceGoalTime);
   const shoe = shoes.find((x) => x.id === s.shoeId && !x.retired) ?? null;
   const workout = workouts.find((w) => w.id === s.workoutId) ?? workouts[0] ?? null;
   const week = weekStats(runs, s.weeklyGoalKm);
@@ -69,16 +72,21 @@ export default function StartScreen() {
   const days = weekDays(s.runDays, runs, upcoming.map((x) => x.date));
 
   /** Starts a run from the form, or a training plan session when `ps` is given. */
-  async function start(ps?: PlanSession, easier = false) {
+  async function start(ps?: PlanSession, easier = false, storyRun = false) {
     if (!s) return;
-    const mode: RunMode = ps ? (ps.kind === 'workout' ? 'intervals' : 'distance') : s.mode;
+    const story = storyRun ? storyById(s.story ?? undefined) : null;
+    const mode: RunMode = story ? 'intervals' : ps ? (ps.kind === 'workout' ? 'intervals' : 'distance') : s.mode;
     const goalKm = ps?.km ?? parseFloat(s.goalKm.replace(',', '.'));
     const target = ps ? (ps.targetPace ? Math.round(ps.targetPace * (activePlan?.custom ? paceFactor(progress) : 1)) : null)
       : s.targetPace.trim() ? parsePace(s.targetPace) : null;
-    const chosen = ps?.workout ?? workout;
+    const chosen = story ? storyWorkout(story) : ps?.workout ?? workout;
     if (mode === 'distance' && !(goalKm >= 0.2 && goalKm <= 200)) { setError('Enter a distance between 0.2 and 200 km.'); return; }
-    if (!ps && s.targetPace.trim() && !(target && target >= 150 && target <= 1200)) { setError('Write target pace as minutes:seconds per km, for example 6:00.'); return; }
+    if (!ps && !story && s.targetPace.trim() && !(target && target >= 150 && target <= 1200)) { setError('Write target pace as minutes:seconds per km, for example 6:00.'); return; }
     if (mode === 'intervals' && !chosen) { setError('Choose an interval workout first.'); return; }
+    const race = plus && mode === 'distance' && !ps && !story && s.raceMode ? parseClock(s.raceGoalTime) : null;
+    if (plus && mode === 'distance' && !ps && s.raceMode && !(race && race / goalKm >= 150 && race / goalKm <= 1200)) {
+      setError('Enter a goal finish time like 25:00 or 1:55:00 (or turn race mode off).'); return;
+    }
     const kmh = parseFloat(s.treadmillKmh.replace(',', '.'));
     if (s.treadmill && !(kmh >= 3 && kmh <= 30)) { setError('Enter a treadmill speed between 3 and 30 km/h.'); return; }
     const ghost = plus && mode === 'distance' && !s.treadmill && !ps ? pickGhost(s.ghost, runs, goalKm * 1000) : null;
@@ -105,6 +113,8 @@ export default function StartScreen() {
       autoPause: s.autoPause,
       ...(s.treadmill ? { treadmill: true, treadmillKmh: kmh } : {}),
       ...(ghost ? { ghost } : {}),
+      ...(story ? { story: story.id, targetPace: null } : {}),
+      ...(race ? { raceGoal: { time: race, strategy: s.raceStrategy }, targetPace: Math.round(race / goalKm), planLabel: `Race mode. Goal ${sayTime(race)}.` } : {}),
       shoeId: shoe?.id ?? null,
       ...(ps && activePlan ? {
         planSession: sessionKey(activePlan.id, ps),
@@ -172,6 +182,40 @@ export default function StartScreen() {
             onChange={(splitEvery) => update({ splitEvery })}
           />
         </Card>
+      ) : null}
+
+      {plus && storyById(s.story ?? undefined) ? (
+        <Card style={{ borderColor: t.accent, borderWidth: 1.5 }}>
+          <Text style={{ color: t.accent, fontWeight: '800' }}>{storyById(s.story!)!.emoji} Story run</Text>
+          <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginTop: 2 }}>{storyById(s.story!)!.title}</Text>
+          <Text style={{ color: t.muted, marginTop: 2 }}>{storyMinutes(storyById(s.story!)!)} minutes · put your headphones in</Text>
+          <Button label={starting ? 'Starting…' : 'Start the story'} onPress={() => start(undefined, false, true)} disabled={starting} style={{ marginTop: 12 }} />
+          <Button small variant="secondary" label="Not now" onPress={() => update({ story: null })} style={{ marginTop: 8, alignSelf: 'flex-start' }} />
+        </Card>
+      ) : null}
+
+      {s.mode === 'distance' ? (
+        plus ? (
+          <Card>
+            <ToggleRow label="Race mode" hint="Set a goal finish time. The coach paces you live to hit it." value={s.raceMode} onChange={(raceMode) => update({ raceMode })} />
+            {s.raceMode ? (
+              <>
+                <Field label="Goal finish time" hint="Minutes:seconds, or hours:minutes:seconds." placeholder="25:00" value={s.raceGoalTime} onChangeText={(raceGoalTime) => update({ raceGoalTime })} keyboardType="numbers-and-punctuation" />
+                <Segmented<'even' | 'negative'>
+                  options={[{ label: 'Even pace', value: 'even' }, { label: 'Negative split', value: 'negative' }]}
+                  value={s.raceStrategy}
+                  onChange={(raceStrategy) => update({ raceStrategy })}
+                />
+                <Text style={{ color: t.muted, lineHeight: 20 }}>
+                  {s.raceStrategy === 'even' ? 'The same pace all the way.' : 'Start 2% slower, finish 2% faster. Most records are run this way.'}
+                  {raceGoalSecs && goalKmNum ? ` That's ${fmtPace(raceGoalSecs / goalKmNum)} per km on average.` : ''}
+                </Text>
+              </>
+            ) : null}
+          </Card>
+        ) : (
+          <PlusLock title="Race mode" text="Set a goal finish time and the coach paces you live to hit it, with even or negative-split pacing." onPress={() => router.push('/plus')} />
+        )
       ) : null}
 
       {s.mode === 'distance' && !s.treadmill ? (
@@ -269,6 +313,8 @@ export default function StartScreen() {
           sub={shoe ? `${shoeKm(shoe, runs).toFixed(0)} of about ${shoe.limitKm} km${shoeKm(shoe, runs) >= shoe.limitKm ? ' · time for new ones!' : ''}` : 'Track how far your shoes have gone'}
           onPress={() => router.push('/shoes')} />
         {!race || daysUntil(race) < 0 ? <LinkRow icon="flag" label="Add a race" sub="Count down to a race and check your plan fits" onPress={() => router.push('/race')} /> : null}
+        {plus && new Date().getDay() === 1 && runs.length ? <LinkRow icon="newspaper" label="Your weekly report is ready" sub="How last week went, and this week's target" onPress={() => router.push('/weekly')} /> : null}
+        <LinkRow icon="book" label={plus ? 'Story runs' : 'Story runs ★'} sub="Run through an adventure: zombies, a heist, Mars" onPress={() => router.push('/stories')} />
         <LinkRow icon="body" label="Warm up first" sub="5-minute spoken warm-up" onPress={() => router.push('/routine/warmup')} />
       </Card>
 

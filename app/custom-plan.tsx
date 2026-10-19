@@ -6,19 +6,10 @@ import { useTheme } from '../src/theme';
 import { loadPlan, loadRace, loadRuns, loadSettings, savePlan, saveRace } from '../src/storage';
 import { BuiltPlan, buildCustomPlan, currentFitness } from '../src/customPlan';
 import { RACE_DISTANCES, parseDate, raceDistanceName, showDate } from '../src/gear';
-import { fmtPace, fmtTime } from '../src/format';
+import { fmtPace, fmtTime, parseClock } from '../src/format';
 import { planFor } from '../src/plans';
 import { usePlus } from '../src/plus';
 import { PlanProgress, Race, RunRecord, Settings } from '../src/types';
-
-/** "25:30" or "1:52:00" → seconds. */
-function parseClock(text: string): number | null {
-  const parts = text.trim().split(':').map((x) => x.trim());
-  if (parts.length < 2 || parts.length > 3 || parts.some((x) => !/^\d{1,2}$/.test(x))) return null;
-  const [a, b, c] = parts.map(Number);
-  const s = parts.length === 3 ? a * 3600 + b * 60 + c : a * 60 + b;
-  return s > 0 ? s : null;
-}
 
 /** Pacely Plus: build a personal plan for a race from your fitness, goal and running days. */
 export default function CustomPlanScreen() {

@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, documentId, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, documentId, getDoc, getDocs, limit, query, setDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { ready, weekKey } from './leaderboard';
 
@@ -86,4 +86,12 @@ export async function friendsAndMe(): Promise<Profile[]> {
   const r = ready();
   if (!r) return [];
   return profiles([r.uid, ...(await followingIds())]);
+}
+
+/** Runners whose latest outdoor run was in the same area (about 40 × 20 km). Up to 300. */
+export async function localProfiles(area: string): Promise<Profile[]> {
+  const r = ready();
+  if (!r || !area) return [];
+  const snap = await getDocs(query(collection(r.db, 'profiles'), where('area', '==', area), limit(300)));
+  return snap.docs.map((d) => toProfile(d.id, d.data()));
 }
