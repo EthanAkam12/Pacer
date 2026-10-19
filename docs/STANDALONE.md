@@ -28,7 +28,7 @@ After `npm run update` has brought in new code:
 npm run publish
 ```
 
-Then on the phone, close Pacer fully and open it again (sometimes twice): it downloads the new code when it starts.
+Then on the phone, close Pacely fully and open it again (sometimes twice): it downloads the new code when it starts.
 
 ## When do I need a new build instead?
 

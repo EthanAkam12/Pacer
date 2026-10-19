@@ -9,7 +9,7 @@ import { usePlus } from './plus';
 import { ZONES, trainingLoad, vo2Estimate, zoneMinutes } from './advStats';
 import { RunRecord } from './types';
 
-/** History's Advanced stats (Pacer Plus): training load, VO2 max estimate, heart-rate zones, year in review. */
+/** History's Advanced stats (Pacely Plus): training load, VO2 max estimate, heart-rate zones, year in review. */
 export function AdvancedStats({ runs, maxHr }: { runs: RunRecord[]; maxHr: number }) {
   const t = useTheme();
   const router = useRouter();

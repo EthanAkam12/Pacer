@@ -2,7 +2,7 @@ import { Race, RunRecord, Shoe } from './types';
 
 /** Shoes and race helpers. */
 
-/** km on a pair of shoes: what they'd done before Pacer, plus every real run in them. */
+/** km on a pair of shoes: what they'd done before Pacely, plus every real run in them. */
 export function shoeKm(shoe: Shoe, runs: RunRecord[]): number {
   return shoe.startKm + runs.filter((r) => r.shoeId === shoe.id && !r.simulated).reduce((a, r) => a + r.distance / 1000, 0);
 }

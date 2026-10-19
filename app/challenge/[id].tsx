@@ -79,7 +79,7 @@ export default function ChallengeScreen() {
         ))}
         {c.invited.length ? <Text style={{ color: t.muted, marginTop: 10, fontSize: 13 }}>{c.invited.length} invited {c.invited.length === 1 ? 'runner hasn\'t' : 'runners haven\'t'} accepted yet.</Text> : null}
       </Card>
-      <Text style={{ color: t.muted, fontSize: 13, marginBottom: 12, lineHeight: 18 }}>Scores update when each runner opens Pacer after a run.</Text>
+      <Text style={{ color: t.muted, fontSize: 13, marginBottom: 12, lineHeight: 18 }}>Scores update when each runner opens Pacely after a run.</Text>
       <Button variant="danger" label={mine ? 'Delete challenge' : 'Leave challenge'} onPress={leave} />
     </Screen>
   );

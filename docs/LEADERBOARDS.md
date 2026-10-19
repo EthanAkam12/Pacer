@@ -4,7 +4,7 @@ Ranks work straight away on the phone. The **global leaderboards** need Firebase
 
 ## 1. Create the database
 
-1. Go to https://console.firebase.google.com and click your **Pacer** project.
+1. Go to https://console.firebase.google.com and click your **Pacely** project.
 2. In the left menu, open **Build** (or **Databases & Storage**) and click **Firestore Database**.
 3. Click **Create database**.
 4. If it asks for an edition, choose **Standard**. Leave the database ID as `(default)`. Click **Next**.

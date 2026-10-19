@@ -1,6 +1,6 @@
 # Making a development build
 
-Expo Go can't track GPS while the screen is off, and it can't connect to heart-rate straps. A **development build** is your own version of the Pacer app, with its own icon, that can do both. You install it once, and then it loads your code from your PC just like Expo Go does.
+Expo Go can't track GPS while the screen is off, and it can't connect to heart-rate straps. A **development build** is your own version of the Pacely app, with its own icon, that can do both. You install it once, and then it loads your code from your PC just like Expo Go does.
 
 These steps build it in the cloud with **EAS** (Expo's build service), so you don't need Android Studio. The free plan is enough.
 
@@ -41,7 +41,7 @@ eas build --profile development --platform android
 2. Download the `.apk` file and open it.
 3. If Android warns about installing unknown apps, tap **Settings** and allow your browser to install apps, then go back and tap **Install**.
 
-The Pacer app now appears on your home screen with the yellow speech-bubble icon.
+The Pacely app now appears on your home screen with the yellow speech-bubble icon.
 
 ### 5. Run your code in it
 
@@ -52,21 +52,21 @@ cd C:\Users\Ethan\Desktop\pacer-app
 npm run dev
 ```
 
-Open the **Pacer** app (not Expo Go). It should find your server. If it doesn't, scan the QR code in Command Prompt with your phone's camera.
+Open the **Pacely** app (not Expo Go). It should find your server. If it doesn't, scan the QR code in Command Prompt with your phone's camera.
 
 ### 6. Set the phone permissions
 
 These matter for tracking with the screen off:
 
-- **Location:** when Pacer asks, allow it. Then go to **Settings > Apps > Pacer > Permissions > Location** and choose **Allow all the time**.
-- **Nearby devices:** allow it, so Pacer can find heart-rate straps.
-- **Battery:** go to **Settings > Apps > Pacer > Battery** and choose **Unrestricted**. Without this, some phones (especially Samsung) stop Pacer in your pocket.
+- **Location:** when Pacely asks, allow it. Then go to **Settings > Apps > Pacely > Permissions > Location** and choose **Allow all the time**.
+- **Nearby devices:** allow it, so Pacely can find heart-rate straps.
+- **Battery:** go to **Settings > Apps > Pacely > Battery** and choose **Unrestricted**. Without this, some phones (especially Samsung) stop Pacely in your pocket.
 
 ### 7. Test it
 
 1. Turn Practice mode **off** and start a short distance run.
 2. Lock the phone and walk around the block.
-3. You should see a "Pacer is tracking your run" notification, and the coach should keep talking.
+3. You should see a "Pacely is tracking your run" notification, and the coach should keep talking.
 4. To test a heart-rate strap, put it on (straps only wake up when they touch skin), then tap **Connect** on the Run tab.
 
 ### When to build again

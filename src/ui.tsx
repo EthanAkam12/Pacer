@@ -191,7 +191,7 @@ export function AuthHeader({ title, sub }: { title: string; sub: string }) {
   );
 }
 
-/** Shown in place of a Pacer Plus feature when Plus is off. */
+/** Shown in place of a Pacely Plus feature when Plus is off. */
 export function PlusLock({ title, text, onPress }: { title: string; text: string; onPress: () => void }) {
   const t = useTheme();
   return (
@@ -199,11 +199,11 @@ export function PlusLock({ title, text, onPress }: { title: string; text: string
       <Card style={{ borderColor: t.accent, borderWidth: 1.5, borderStyle: 'dashed' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="star" size={16} color={t.accent} />
-          <Text style={{ color: t.accent, fontWeight: '800', fontSize: 13 }}>PACER PLUS</Text>
+          <Text style={{ color: t.accent, fontWeight: '800', fontSize: 13 }}>PACELY PLUS</Text>
         </View>
         <Text style={{ color: t.text, fontWeight: '800', fontSize: 17, marginTop: 4 }}>{title}</Text>
         <Text style={{ color: t.muted, marginTop: 2, lineHeight: 20 }}>{text}</Text>
-        <Text style={{ color: t.accent, fontWeight: '700', marginTop: 8 }}>See Pacer Plus →</Text>
+        <Text style={{ color: t.accent, fontWeight: '700', marginTop: 8 }}>See Pacely Plus →</Text>
       </Card>
     </Pressable>
   );

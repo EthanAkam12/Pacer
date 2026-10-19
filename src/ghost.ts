@@ -2,7 +2,7 @@ import { RunRecord } from './types';
 import { fmtShortDate } from './format';
 
 /**
- * Ghost runner (Pacer Plus): race a past run. A run's distance-over-time comes from its saved
+ * Ghost runner (Pacely Plus): race a past run. A run's distance-over-time comes from its saved
  * track, or (older runs) is rebuilt from its splits.
  */
 export function ghostTrack(r: RunRecord): { t: number; d: number }[] | null {

@@ -8,7 +8,7 @@ import { runBests } from './records';
 import { Profile } from './friends';
 
 /**
- * The social side of Pacer:
+ * The social side of Pacely:
  * - "Well done" on a friend's run: wellDone/{owner}/runs/{runId}/from/{you}
  * - Cheers read out by a friend's coach mid-run: cheers/{them}/items/{id}
  * - Whether someone is running right now: profiles/{uid}.runningSince

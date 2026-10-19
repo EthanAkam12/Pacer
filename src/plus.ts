@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Pacer Plus: the paid extras. Everything that was free stays free; Plus adds depth on top.
+ * Pacely Plus: the paid extras. Everything that was free stays free; Plus adds depth on top.
  * Until payments are set up (Google Play Billing, needs the app on the Play Store), Plus is
- * switched on from the Pacer Plus screen for testing. The flag lives in Settings and is mirrored
+ * switched on from the Pacely Plus screen for testing. The flag lives in Settings and is mirrored
  * here so any screen can check it synchronously.
  */
 export const PLUS_PRICE = { month: '£3.99', year: '£29.99', trialDays: 7 };
 
 export const PLUS_BENEFITS: { icon: string; title: string; text: string }[] = [
-  { icon: 'sparkles', title: 'Personal adaptive plans', text: 'Tell Pacer your goal and race date. It builds a plan around your fitness and free days, then adjusts your paces as you go.' },
+  { icon: 'sparkles', title: 'Personal adaptive plans', text: 'Tell Pacely your goal and race date. It builds a plan around your fitness and free days, then adjusts your paces as you go.' },
   { icon: 'people', title: 'Ghost runner', text: 'Race your best run live. The coach tells you how far ahead or behind your ghost you are.' },
   { icon: 'analytics', title: 'Advanced stats', text: 'Heart-rate zones, training load, a fitness score (VO2 max estimate) and your year in review.' },
   { icon: 'library', title: 'More training plans', text: 'Marathon, sub-25 and sub-20 5K, 10K personal best, and an easy return after injury.' },

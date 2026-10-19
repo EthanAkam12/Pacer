@@ -4,7 +4,7 @@ import { fitnessOf } from './stats';
 import { raceDistanceName } from './gear';
 
 /**
- * Personal adaptive plans (Pacer Plus). Built from the runner's goal race (distance and date),
+ * Personal adaptive plans (Pacely Plus). Built from the runner's goal race (distance and date),
  * current fitness (best 5K-equivalent from recent runs, or a time they enter), an optional goal
  * time, and how many days a week they can run. Paces come from the goal, scaled between
  * distances with Riegel's formula, and are nudged each session by how recent runs felt.

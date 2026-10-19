@@ -121,7 +121,7 @@ export default function StartScreen() {
 
   return (
     <Screen>
-      <Title sub="Pick a run and Pacer will coach you through it.">Ready to run?</Title>
+      <Title sub="Pick a run and Pacely will coach you through it.">Ready to run?</Title>
 
       <WeekGoalCard w={week} days={days} onSchedule={() => router.push('/schedule')} />
 

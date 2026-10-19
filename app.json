@@ -1,8 +1,11 @@
 {
   "expo": {
-    "name": "Pacer",
+    "name": "Pacely",
     "slug": "pacer",
-    "scheme": "pacer",
+    "scheme": [
+      "pacely",
+      "pacer"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -16,9 +19,9 @@
           "audio",
           "bluetooth-central"
         ],
-        "NSLocationWhenInUseUsageDescription": "Pacer uses your location to measure distance and pace during your runs.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Pacer keeps tracking your run while your phone is locked or in your pocket.",
-        "NSBluetoothAlwaysUsageDescription": "Pacer connects to your heart-rate strap."
+        "NSLocationWhenInUseUsageDescription": "Pacely uses your location to measure distance and pace during your runs.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Pacely keeps tracking your run while your phone is locked or in your pocket.",
+        "NSBluetoothAlwaysUsageDescription": "Pacely connects to your heart-rate strap."
       }
     },
     "android": {
@@ -60,7 +63,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Pacer keeps tracking your run while your phone is locked or in your pocket.",
+          "locationAlwaysAndWhenInUsePermission": "Pacely keeps tracking your run while your phone is locked or in your pocket.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
@@ -73,7 +76,7 @@
           "modes": [
             "central"
           ],
-          "bluetoothAlwaysPermission": "Pacer connects to your heart-rate strap."
+          "bluetoothAlwaysPermission": "Pacely connects to your heart-rate strap."
         }
       ],
       [

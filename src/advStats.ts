@@ -3,7 +3,7 @@ import { fitnessOf } from './stats';
 import { runBests } from './records';
 import { weekStart } from './progress';
 
-/** Advanced stats (Pacer Plus). Callers pass real runs (no practice runs). */
+/** Advanced stats (Pacely Plus). Callers pass real runs (no practice runs). */
 
 const DAY = 864e5;
 
@@ -69,7 +69,7 @@ export function trainingLoad(runs: RunRecord[], now = Date.now()): LoadSummary {
     return { label: `${d.getDate()}/${d.getMonth() + 1}`, value: Math.round(loadIn(from, from + 7 * DAY)) };
   });
   const verdict: LoadSummary['verdict'] =
-    chronic === 0 && acute === 0 ? { title: 'No recent runs', text: 'Run a few times and Pacer will show how your training is balanced.', tone: 'low' }
+    chronic === 0 && acute === 0 ? { title: 'No recent runs', text: 'Run a few times and Pacely will show how your training is balanced.', tone: 'low' }
     : ratio < 0.8 ? { title: 'Taking it easy', text: 'You\'ve done less than usual this week. Fine for a rest week; keep it up for long and fitness slowly drops.', tone: 'low' }
     : ratio <= 1.3 ? { title: 'Good balance', text: 'This week matches what your body is used to. The sweet spot for getting fitter safely.', tone: 'good' }
     : ratio <= 1.5 ? { title: 'Building fast', text: 'More than usual this week. Fine for a week or two, but make sure you get rest days.', tone: 'high' }

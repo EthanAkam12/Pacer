@@ -2,7 +2,7 @@ import { Share } from 'react-native';
 import { RunRecord } from './types';
 
 /**
- * GPX export (Pacer Plus): the route as a standard GPX track that Strava, Garmin Connect and most
+ * GPX export (Pacely Plus): the route as a standard GPX track that Strava, Garmin Connect and most
  * running apps can import. Runs recorded since GPX export was added have a time on each point;
  * older ones get times spread evenly across the run.
  */
@@ -16,7 +16,7 @@ export function toGpx(r: RunRecord): string {
     return `      <trkpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><time>${time}</time></trkpt>`;
   });
   return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Pacer" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="Pacely" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata><name>${esc(r.title)}</name><time>${new Date(start).toISOString()}</time></metadata>
   <trk>
     <name>${esc(r.title)}</name>
@@ -32,7 +32,7 @@ ${pts.join('\n')}
 /** Saves the GPX to a file and opens the share sheet (falls back to sharing the text). */
 export async function shareGpx(r: RunRecord): Promise<void> {
   const text = toGpx(r);
-  const name = `pacer-${r.startedAt.slice(0, 10)}-${r.id.slice(-4)}.gpx`;
+  const name = `pacely-${r.startedAt.slice(0, 10)}-${r.id.slice(-4)}.gpx`;
   try {
     const FS = require('expo-file-system') as typeof import('expo-file-system');
     const Sharing = require('expo-sharing') as typeof import('expo-sharing');

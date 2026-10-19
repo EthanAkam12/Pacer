@@ -82,7 +82,7 @@ export default function ShoesScreen() {
   return (
     <Screen inset={false}>
       <Text style={{ color: t.muted, marginBottom: 12, lineHeight: 20 }}>
-        Running shoes last about 600–800 km. Pacer adds up every run in each pair. Tap a pair to use it, retire it or delete it.
+        Running shoes last about 600–800 km. Pacely adds up every run in each pair. Tap a pair to use it, retire it or delete it.
       </Text>
       {active.map(row)}
       {!active.length ? <Card><Text style={{ color: t.muted }}>No shoes yet. Add your first pair below.</Text></Card> : null}

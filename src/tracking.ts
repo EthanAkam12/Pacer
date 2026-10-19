@@ -19,7 +19,7 @@ export async function startTracking(onLocations: Handler): Promise<{ ok: boolean
   handler = onLocations;
   const fg = await Location.requestForegroundPermissionsAsync();
   if (fg.status !== 'granted') {
-    return { ok: false, message: 'Pacer needs location access to measure your run. Turn it on in your phone settings.' };
+    return { ok: false, message: 'Pacely needs location access to measure your run. Turn it on in your phone settings.' };
   }
 
   let bg = false;
@@ -35,7 +35,7 @@ export async function startTracking(onLocations: Handler): Promise<{ ok: boolean
         pausesUpdatesAutomatically: false,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
-          notificationTitle: 'Pacer is tracking your run',
+          notificationTitle: 'Pacely is tracking your run',
           notificationBody: 'Tap to go back to your run.',
           notificationColor: '#1B3BCF',
         },
@@ -51,7 +51,7 @@ export async function startTracking(onLocations: Handler): Promise<{ ok: boolean
     { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
     (loc) => handler?.([loc]),
   );
-  return { ok: true, message: 'Background tracking is off, so keep Pacer open during your run.' };
+  return { ok: true, message: 'Background tracking is off, so keep Pacely open during your run.' };
 }
 
 export async function stopTracking() {

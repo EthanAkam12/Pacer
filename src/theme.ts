@@ -12,7 +12,7 @@ export interface ThemeDef {
   name: string;
   dark: { bg: string; accent: string; walk: string };
   light: { bg: string; accent: string; walk: string };
-  /** Pacer Plus bonus theme. */
+  /** Pacely Plus bonus theme. */
   plus?: boolean;
 }
 

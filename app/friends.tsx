@@ -80,7 +80,7 @@ function FriendsTab({ list, ids, reload }: { list: Profile[]; ids: string[]; rel
   const [found, setFound] = useState<Profile | null | 'none'>(null);
   const [busy, setBusy] = useState(false);
   const [showQr, setShowQr] = useState(false);
-  const link = `pacer://add/${username ?? ''}`;
+  const link = `pacely://add/${username ?? ''}`;
 
   async function find() {
     if (!search.trim()) return;
@@ -107,9 +107,9 @@ function FriendsTab({ list, ids, reload }: { list: Profile[]; ids: string[]; rel
 
       <Card>
         <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>Invite friends</Text>
-        <Text style={{ color: t.muted, marginTop: 2, marginBottom: 10 }}>Your username is <Text style={{ color: t.text, fontWeight: '800' }}>{username}</Text>. Share it, or let a friend scan your code in Pacer.</Text>
+        <Text style={{ color: t.muted, marginTop: 2, marginBottom: 10 }}>Your username is <Text style={{ color: t.text, fontWeight: '800' }}>{username}</Text>. Share it, or let a friend scan your code in Pacely.</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Button small label="Share invite" onPress={() => Share.share({ message: `Run with me on Pacer! My username is ${username}. Open this on your phone: ${link}` })} />
+          <Button small label="Share invite" onPress={() => Share.share({ message: `Run with me on Pacely! My username is ${username}. Open this on your phone: ${link}` })} />
           <Button small variant="secondary" label={showQr ? 'Hide code' : 'Show my code'} onPress={() => setShowQr(!showQr)} />
         </View>
         {showQr ? <View style={{ alignItems: 'center', marginTop: 14, padding: 12, backgroundColor: '#fff', borderRadius: 12, alignSelf: 'center' }}><QRCode value={link} size={180} /></View> : null}

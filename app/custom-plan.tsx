@@ -20,7 +20,7 @@ function parseClock(text: string): number | null {
   return s > 0 ? s : null;
 }
 
-/** Pacer Plus: build a personal plan for a race from your fitness, goal and running days. */
+/** Pacely Plus: build a personal plan for a race from your fitness, goal and running days. */
 export default function CustomPlanScreen() {
   const t = useTheme();
   const router = useRouter();
@@ -50,7 +50,7 @@ export default function CustomPlanScreen() {
   if (!plus) {
     return (
       <Screen inset={false}>
-        <PlusLock title="Personal adaptive plans" text="Tell Pacer your race and goal. It builds a plan around your fitness and running days, then adjusts as you go." onPress={() => router.push('/plus')} />
+        <PlusLock title="Personal adaptive plans" text="Tell Pacely your race and goal. It builds a plan around your fitness and running days, then adjusts as you go." onPress={() => router.push('/plus')} />
       </Screen>
     );
   }
@@ -88,7 +88,7 @@ export default function CustomPlanScreen() {
   return (
     <Screen inset={false}>
       <Text style={{ color: t.muted, marginBottom: 12, lineHeight: 20 }}>
-        Tell Pacer about your race. Your plan is built around your fitness and the days you can run, and your paces adjust as you tell Pacer how sessions felt.
+        Tell Pacely about your race. Your plan is built around your fitness and the days you can run, and your paces adjust as you tell Pacely how sessions felt.
       </Text>
       <Card>
         <SectionLabel>Race distance</SectionLabel>
@@ -97,7 +97,7 @@ export default function CustomPlanScreen() {
         </View>
         <Field label="Race date (day/month/year)" placeholder="12/04/2027" value={date} onChangeText={(v) => { setDate(v); setBuilt(null); }} keyboardType="numbers-and-punctuation" />
         <Field label="Your 5K time now" hint={current ? 'Worked out from your recent runs. Change it if you know better.' : 'Leave empty if you\'re not sure.'} placeholder="28:30" value={current} onChangeText={(v) => { setCurrent(v); setBuilt(null); }} keyboardType="numbers-and-punctuation" />
-        <Field label="Goal time (optional)" hint="Leave empty and Pacer picks a realistic target." placeholder={km > 21.2 ? '4:00:00' : km > 10 ? '1:55:00' : km > 5 ? '55:00' : '25:00'} value={goal} onChangeText={(v) => { setGoal(v); setBuilt(null); }} keyboardType="numbers-and-punctuation" />
+        <Field label="Goal time (optional)" hint="Leave empty and Pacely picks a realistic target." placeholder={km > 21.2 ? '4:00:00' : km > 10 ? '1:55:00' : km > 5 ? '55:00' : '25:00'} value={goal} onChangeText={(v) => { setGoal(v); setBuilt(null); }} keyboardType="numbers-and-punctuation" />
         <SectionLabel>Runs a week</SectionLabel>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
           {[3, 4].map((n) => <Chip key={n} small label={`${n} runs`} active={perWeek === n} onPress={() => { setPerWeek(n); setBuilt(null); }} />)}

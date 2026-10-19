@@ -28,7 +28,7 @@ export default function WorkoutsScreen() {
 
   return (
     <Screen>
-      <Title sub="Mix running, walking and rest. Pacer calls out every change.">Intervals</Title>
+      <Title sub="Mix running, walking and rest. Pacely calls out every change.">Intervals</Title>
 
       <View style={{ flexDirection: 'row', gap: 16, marginBottom: 16 }}>
         {(['run', 'walk', 'rest'] as StepKind[]).map((k) => (

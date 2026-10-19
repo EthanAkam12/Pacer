@@ -23,7 +23,7 @@ export default function SignIn() {
 
   return (
     <Screen>
-      <AuthHeader title="Welcome to Pacer" sub="Sign in to your account to start running with your coach." />
+      <AuthHeader title="Welcome to Pacely" sub="Sign in to your account to start running with your coach." />
       <Card>
         <Field label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" />
         <PasswordField label="Password" value={password} onChangeText={setPassword} autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
@@ -33,7 +33,7 @@ export default function SignIn() {
       </Card>
       {error ? <Text style={{ color: t.danger, marginBottom: 12, fontWeight: '600' }}>{error}</Text> : null}
       <Button label={busy ? 'Signing in…' : 'Sign in'} onPress={submit} disabled={busy} />
-      <Text style={{ color: t.muted, textAlign: 'center', marginTop: 24, marginBottom: 8 }}>New to Pacer?</Text>
+      <Text style={{ color: t.muted, textAlign: 'center', marginTop: 24, marginBottom: 8 }}>New to Pacely?</Text>
       <Button variant="secondary" label="Create an account" onPress={() => router.push('/sign-up')} />
     </Screen>
   );

@@ -131,7 +131,7 @@ export interface Settings {
   weeklyGoalKm: number;
   /** Days of the week the runner can run (0 = Sunday). Plan sessions go on these days. */
   runDays: number[];
-  /** Pacer Plus switched on (for testing until payments are set up). */
+  /** Pacely Plus switched on (for testing until payments are set up). */
   plus: boolean;
   /** Pause automatically when you stop moving (GPS runs only). */
   autoPause: boolean;
@@ -159,7 +159,7 @@ export interface PlanProgress {
   adjustedAt?: string;
   /** Last change on this phone, so the newest copy wins when syncing. */
   updatedAt?: string;
-  /** A personal plan (Pacer Plus) is stored with its progress. */
+  /** A personal plan (Pacely Plus) is stored with its progress. */
   custom?: import('./plans').TrainingPlan;
 }
 

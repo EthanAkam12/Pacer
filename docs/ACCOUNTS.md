@@ -1,6 +1,6 @@
 # Switching on accounts (Firebase)
 
-Pacer uses **Firebase Authentication** (from Google) for accounts. It stores the email and password safely and sends the verification and password-reset emails for you. The free plan is plenty.
+Pacely uses **Firebase Authentication** (from Google) for accounts. It stores the email and password safely and sends the verification and password-reset emails for you. The free plan is plenty.
 
 Until this is set up, the app skips sign-in so you can keep testing.
 
@@ -8,7 +8,7 @@ Until this is set up, the app skips sign-in so you can keep testing.
 
 1. Go to https://console.firebase.google.com and sign in with a Google account.
 2. Click **Create a project** (or **Add project**).
-3. Name it `Pacer` and click **Continue**.
+3. Name it `Pacely` and click **Continue**.
 4. When it asks about Google Analytics, switch it **off**, then click **Create project**. Wait for it to finish and click **Continue**.
 
 ## 2. Switch on email and password sign-in
@@ -22,7 +22,7 @@ Until this is set up, the app skips sign-in so you can keep testing.
 
 1. Click the **cog** next to "Project overview" at the top left, then **Project settings**.
 2. Scroll down to **Your apps** and click the **web** icon, which looks like `</>`.
-3. For the nickname, type `Pacer app`. Leave "Firebase Hosting" unticked. Click **Register app**.
+3. For the nickname, type `Pacely app`. Leave "Firebase Hosting" unticked. Click **Register app**.
 4. You'll see some code with `const firebaseConfig = { ... }`. Copy the lines for `apiKey`, `authDomain`, `projectId` and `appId`, and send them to Claude.
 
 These details are safe to share. They only identify your project; they don't give anyone access to it.
@@ -31,7 +31,7 @@ These details are safe to share. They only identify your project; they don't giv
 
 1. In **Authentication**, open the **Templates** tab.
 2. Click **Email address verification**, then the pencil icon.
-3. Change **Sender name** to `Pacer` and the subject to something like `Verify your email for Pacer`. Click **Save**.
+3. Change **Sender name** to `Pacely` and the subject to something like `Verify your email for Pacely`. Click **Save**.
 
 Do the same for **Password reset** if you like.
 

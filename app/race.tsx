@@ -41,7 +41,7 @@ export default function RaceScreen() {
   return (
     <Screen inset={false}>
       <Text style={{ color: t.muted, marginBottom: 12, lineHeight: 20 }}>
-        Got a race coming up? Pacer counts down to it on the Run tab and checks your training plan finishes in time.
+        Got a race coming up? Pacely counts down to it on the Run tab and checks your training plan finishes in time.
       </Text>
       <Card>
         <Field label="Race name" placeholder="Hackney Half" value={name} onChangeText={setName} />

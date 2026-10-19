@@ -19,7 +19,7 @@ export interface TrainingPlan {
   id: string; name: string; level: string; blurb: string; weeks: number; perWeek: number; sessions: PlanSession[];
   /** Beginner plan: the coach encourages walking breaks instead of warning about slowing down. */
   gentle?: boolean;
-  /** Pacer Plus plan. */
+  /** Pacely Plus plan. */
   plus?: boolean;
   /** Personal plan built by src/customPlan.ts. */
   custom?: { km: number; raceDate: string; goalTime: number; paces: { easy: number; tempo: number; reps: number; race: number } };
@@ -98,7 +98,7 @@ for (let w = 1; w <= 12; w++) {
   half.push(session('half', w, 3, w < 12 ? `Long run, ${halfLong[w - 1]} km, nice and easy` : 'Race day: the half marathon!', { kind: 'distance', km: halfLong[w - 1] }));
 }
 
-// ----- Pacer Plus plans -----
+// ----- Pacely Plus plans -----
 
 // Marathon (16 weeks, 4 runs a week)
 const marathon: PlanSession[] = [];

@@ -48,7 +48,7 @@ export default function PlanGuideScreen() {
   const startButton = isActive
     ? <Text style={{ color: t.accent, fontWeight: '700', marginTop: 12 }}>This is your current plan.</Text>
     : plan.plus && !plus
-      ? <Button label="Unlock with Pacer Plus" onPress={() => router.push('/plus')} style={{ marginTop: 12 }} />
+      ? <Button label="Unlock with Pacely Plus" onPress={() => router.push('/plus')} style={{ marginTop: 12 }} />
       : <Button label={current ? 'Switch to this plan' : 'Start this plan'} onPress={start} style={{ marginTop: 12 }} />;
 
   return (

@@ -287,7 +287,7 @@ export interface Persona {
   accents: string[]; // preferred voice languages, best first
   rate: number; // speaking speed before the person's own speed setting
   pitch: number;
-  /** Pacer Plus coach. */
+  /** Pacely Plus coach. */
   plus?: boolean;
 }
 

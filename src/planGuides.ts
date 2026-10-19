@@ -35,7 +35,7 @@ export const GUIDES: Record<string, PlanGuide> = {
     ],
     sessionTypes: [
       { name: 'Warm-up walk (5 min)', text: 'A brisk walk before every session warms up your muscles and gets your heart rate up gently.' },
-      { name: 'Run/walk', text: 'Run for a set time, then walk to recover. Pacer tells you when to switch. Run slowly enough that you could still talk.' },
+      { name: 'Run/walk', text: 'Run for a set time, then walk to recover. Pacely tells you when to switch. Run slowly enough that you could still talk.' },
       { name: 'Continuous run', text: 'One steady run with no walking. Pick a pace you could keep going at, even if it feels slow.' },
       { name: 'Cool-down walk (5 min)', text: 'Lets your heart rate come down slowly and helps your legs feel less stiff the next day.' },
     ],
@@ -91,9 +91,9 @@ export const GUIDES: Record<string, PlanGuide> = {
       { weeks: '6', title: 'Time trial', text: 'Fewer reps so you\'re fresh, then a 5 km time trial aiming for under 30 minutes (5:55 per km).' },
     ],
     sessionTypes: [
-      { name: '400 m reps', text: 'Run 400 m (one lap of a track) at 5:30 per km, a bit faster than your goal pace, then rest for 90 seconds. Pacer tells you if you\'re on pace. Running faster than goal pace makes goal pace feel easier.' },
+      { name: '400 m reps', text: 'Run 400 m (one lap of a track) at 5:30 per km, a bit faster than your goal pace, then rest for 90 seconds. Pacely tells you if you\'re on pace. Running faster than goal pace makes goal pace feel easier.' },
       { name: 'Easy run', text: 'A relaxed run to recover between the harder sessions. Don\'t worry about pace at all.' },
-      { name: 'Steady run', text: 'A longer run at 6:00 per km, your target race pace. Pacer warns you if you drift too slow, so you learn what the pace feels like.' },
+      { name: 'Steady run', text: 'A longer run at 6:00 per km, your target race pace. Pacely warns you if you drift too slow, so you learn what the pace feels like.' },
     ],
     weekNotes: [
       '5 reps of 400 m and a 4 km steady run. Find your rhythm at 6:00 per km.',
@@ -148,7 +148,7 @@ export const GUIDES: Record<string, PlanGuide> = {
       { weeks: '5–6', title: 'Running again', text: 'Longer runs with one short walk, then 25 minutes of easy running. Then you can go back to your normal training or another plan.' },
     ],
     sessionTypes: [
-      { name: 'Run/walk', text: 'Run gently for a set time, then walk for a minute. Pacer tells you when to switch. Every run should feel easy.' },
+      { name: 'Run/walk', text: 'Run gently for a set time, then walk for a minute. Pacely tells you when to switch. Every run should feel easy.' },
       { name: 'Warm-up and cool-down walks', text: '5 minutes of walking at each end. Don\'t skip them: they matter more when you\'re coming back.' },
     ],
     weekNotes: [
@@ -172,9 +172,9 @@ export const GUIDES: Record<string, PlanGuide> = {
       { weeks: '6', title: 'Time trial', text: 'Fewer reps to keep your legs fresh, then 5 km aiming for under 25 minutes.' },
     ],
     sessionTypes: [
-      { name: '400 m reps', text: 'Run 400 m at 4:40 per km, a bit faster than race pace, then rest 90 seconds. Pacer tells you if you\'re on pace.' },
+      { name: '400 m reps', text: 'Run 400 m at 4:40 per km, a bit faster than race pace, then rest 90 seconds. Pacely tells you if you\'re on pace.' },
       { name: 'Easy run', text: 'Relaxed running to recover. No pace to worry about.' },
-      { name: 'Steady run', text: 'A longer run at 5:00 per km, your goal pace. Pacer warns you if you drift too slow.' },
+      { name: 'Steady run', text: 'A longer run at 5:00 per km, your goal pace. Pacely warns you if you drift too slow.' },
     ],
     weekNotes: [
       '5 reps and a 4 km steady run. Find your rhythm at 5:00 per km.',
@@ -197,7 +197,7 @@ export const GUIDES: Record<string, PlanGuide> = {
       { weeks: '7–8', title: 'Taper and race', text: 'Less volume so you\'re fresh, then race 10 km.' },
     ],
     sessionTypes: [
-      { name: '800 m reps', text: 'Run 800 m hard (faster than 10K pace), jog 90 seconds, repeat. Pacer compares each rep with how you started it.' },
+      { name: '800 m reps', text: 'Run 800 m hard (faster than 10K pace), jog 90 seconds, repeat. Pacely compares each rep with how you started it.' },
       { name: 'Tempo run', text: 'Comfortably hard: you could say a few words, but not chat. It lifts the pace you can hold for 10 km.' },
       { name: 'Easy run', text: 'Relaxed recovery running.' },
       { name: 'Long run', text: 'Slow and steady, building endurance so the last 2 km of the race feel strong.' },

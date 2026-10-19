@@ -46,7 +46,7 @@ export default function SettingsScreen() {
 
   async function toggleReminders(on: boolean) {
     if (on && !(await allowReminders())) {
-      Alert.alert('Notifications are off', 'To get reminders, allow notifications for Pacer in your phone\'s settings.', [
+      Alert.alert('Notifications are off', 'To get reminders, allow notifications for Pacely in your phone\'s settings.', [
         { text: 'Not now', style: 'cancel' }, { text: 'Open settings', onPress: () => Linking.openSettings() },
       ]);
       return;
@@ -93,7 +93,7 @@ export default function SettingsScreen() {
         <Card style={{ backgroundColor: t.accent, borderWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Ionicons name="star" size={24} color={t.onAccent} />
           <View style={{ flex: 1 }}>
-            <Text style={{ color: t.onAccent, fontWeight: '900', fontSize: 17 }}>Pacer Plus{s.plus ? ' is on' : ''}</Text>
+            <Text style={{ color: t.onAccent, fontWeight: '900', fontSize: 17 }}>Pacely Plus{s.plus ? ' is on' : ''}</Text>
             <Text style={{ color: t.onAccent, marginTop: 1 }}>Adaptive plans, ghost runner, advanced stats and more</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={t.onAccent} />
@@ -239,7 +239,7 @@ export default function SettingsScreen() {
 
       <SectionLabel>About</SectionLabel>
       <Card>
-        <Text style={{ color: t.text }}>Pacer {Constants.expoConfig?.version ?? ''}</Text>
+        <Text style={{ color: t.text }}>Pacely {Constants.expoConfig?.version ?? ''}</Text>
         <Text style={{ color: t.muted, marginTop: 2 }}>Your runs are saved on this phone.</Text>
       </Card>
     </Screen>

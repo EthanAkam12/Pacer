@@ -9,7 +9,7 @@ import { loadSettings, saveSettings } from '../src/storage';
 import { PLUS_BENEFITS, PLUS_PRICE, setPlusFlag } from '../src/plus';
 import { Settings } from '../src/types';
 
-/** What Pacer Plus adds, and (until payments are set up) a switch to try it. */
+/** What Pacely Plus adds, and (until payments are set up) a switch to try it. */
 export default function PlusScreen() {
   const t = useTheme();
   const [s, setS] = useState<Settings | null>(null);
@@ -33,10 +33,10 @@ export default function PlusScreen() {
       <Card style={{ backgroundColor: t.accent, borderWidth: 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons name="star" size={22} color={t.onAccent} />
-          <Text style={{ color: t.onAccent, fontSize: 24, fontWeight: '900' }}>Pacer Plus</Text>
+          <Text style={{ color: t.onAccent, fontSize: 24, fontWeight: '900' }}>Pacely Plus</Text>
         </View>
         <Text style={{ color: t.onAccent, marginTop: 6, lineHeight: 21, fontSize: 15 }}>
-          Everything in Pacer stays free. Plus adds extra coaching, stats and plans for runners who want more.
+          Everything in Pacely stays free. Plus adds extra coaching, stats and plans for runners who want more.
         </Text>
         <Text style={{ color: t.onAccent, marginTop: 10, fontWeight: '800' }}>
           {PLUS_PRICE.month} a month or {PLUS_PRICE.year} a year · {PLUS_PRICE.trialDays}-day free trial
@@ -61,7 +61,7 @@ export default function PlusScreen() {
         <Text style={{ color: t.muted, lineHeight: 20, marginBottom: 6 }}>
           Payments aren't set up yet (that comes with the Play Store). Until then you can switch Plus on to try everything.
         </Text>
-        <ToggleRow label="Pacer Plus on" value={s.plus} onChange={toggle} />
+        <ToggleRow label="Pacely Plus on" value={s.plus} onChange={toggle} />
       </Card>
     </Screen>
   );

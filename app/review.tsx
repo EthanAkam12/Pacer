@@ -7,7 +7,7 @@ import { yearReview } from '../src/advStats';
 import { fmtShortDate, fmtTime } from '../src/format';
 import { RunRecord } from '../src/types';
 
-/** Year in review (Pacer Plus): a year of running in big numbers. */
+/** Year in review (Pacely Plus): a year of running in big numbers. */
 export default function ReviewScreen() {
   const t = useTheme();
   const [runs, setRuns] = useState<RunRecord[]>([]);

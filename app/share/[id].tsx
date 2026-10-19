@@ -47,11 +47,11 @@ export default function ShareRun() {
       if (!(await Sharing.isAvailableAsync())) { setError("Sharing isn't available on this phone."); return; }
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share your run' });
     } catch {
-      setError("Couldn't make the picture. This needs the latest version of the Pacer app.");
+      setError("Couldn't make the picture. This needs the latest version of the Pacely app.");
     }
   }
 
-  // Card designs: Classic is free; Light and Bold are Pacer Plus extras.
+  // Card designs: Classic is free; Light and Bold are Pacely Plus extras.
   const D = design === 'light'
     ? { top: '#FFFFFF', bottom: mix(t.accent, '#FFFFFF', 0.85), fg: mix(t.accent, '#000000', 0.6), sub: 'rgba(0,0,0,0.55)', chip: 'rgba(0,0,0,0.07)', route: mix(t.accent, '#000000', 0.2), big: mix(t.accent, '#000000', 0.35) }
     : design === 'bold'
@@ -79,7 +79,7 @@ export default function ShareRun() {
         </Svg>
         <View style={{ flex: 1, padding: 22 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ flex: 1, color: D.fg, fontWeight: '900', fontSize: 20, letterSpacing: 3 }}>PACER</Text>
+            <Text style={{ flex: 1, color: D.fg, fontWeight: '900', fontSize: 20, letterSpacing: 3 }}>PACELY</Text>
             {username ? <Text style={{ color: D.sub, fontWeight: '700' }}>@{username}</Text> : null}
           </View>
           <Text style={{ color: D.sub, marginTop: 4 }}>{run.title} · {fmtDate(run.startedAt)}</Text>
