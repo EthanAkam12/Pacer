@@ -219,6 +219,11 @@ export default function SettingsScreen() {
         )}
       </Card>
 
+      <SectionLabel>Safety</SectionLabel>
+      <Card style={{ paddingVertical: 6 }}>
+        <Row icon="navigate-circle" label={s.plus ? 'Live tracking' : 'Live tracking ★'} sub={s.liveShare && s.plus ? `On · ${s.safetyContacts.length} ${s.safetyContacts.length === 1 ? 'contact' : 'contacts'}` : 'Let family see where you are while you run'} onPress={() => router.push('/safety')} />
+      </Card>
+
       <SectionLabel>Headphones</SectionLabel>
       <Card style={{ paddingVertical: 6 }}>
         <Text style={{ color: t.muted, lineHeight: 20, paddingTop: 8 }}>

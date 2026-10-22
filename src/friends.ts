@@ -20,6 +20,8 @@ export interface Profile {
   runningSince: number | null;
   bests: Record<string, number>; // "5000" -> seconds
   rankScore: number | null;
+  /** Pacely Plus member (shows a star). */
+  plus: boolean;
 }
 
 function toProfile(uid: string, v: Record<string, unknown>): Profile {
@@ -31,6 +33,7 @@ function toProfile(uid: string, v: Record<string, unknown>): Profile {
     recent: Array.isArray(v.recent) ? (v.recent as Profile['recent']) : [], bests, rankScore: typeof v.rankScore === 'number' ? v.rankScore : null,
     streak: Number(v.streak ?? 0),
     trophies: Number(v.trophies ?? 0),
+    plus: v.plus === true,
     runningSince: v.runningSince && typeof (v.runningSince as { toMillis?: () => number }).toMillis === 'function' ? (v.runningSince as { toMillis: () => number }).toMillis() : null,
   };
 }

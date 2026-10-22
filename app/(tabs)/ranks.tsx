@@ -214,7 +214,7 @@ function LeaderRow({ row, badge, me, value }: { row: Row; badge: string; me: boo
         <Text style={{ color: podium ? '#1A1A1A' : t.muted, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{row.position}</Text>
       </View>
       <View style={{ marginLeft: 8 }}><RankBadge id={badge} size={22} /></View>
-      <Text style={{ flex: 1, marginLeft: 10, color: t.text, fontWeight: me ? '800' : '600' }} numberOfLines={1}>{row.name}{me ? ' (you)' : ''}</Text>
+      <Text style={{ flex: 1, marginLeft: 10, color: t.text, fontWeight: me ? '800' : '600' }} numberOfLines={1}>{row.name}{row.plus ? <Text style={{ color: t.accent }}> ★</Text> : null}{me ? ' (you)' : ''}</Text>
       <Text style={{ color: t.text, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{value}</Text>
     </View>
   );
@@ -229,7 +229,7 @@ function friendsBoard(ps: Profile[], board: Board): { rows: Row[]; me: Row | nul
   const rows: Row[] = [];
   scored.forEach(({ p, v }, i) => {
     const position = i > 0 && v === rows[i - 1].value ? rows[i - 1].position : i + 1;
-    rows.push({ uid: p.uid, name: p.name, tier: p.tier, value: v, position });
+    rows.push({ uid: p.uid, name: p.name, tier: p.tier, value: v, position, plus: p.plus });
   });
   return { rows, me: null };
 }

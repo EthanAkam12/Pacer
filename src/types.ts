@@ -165,6 +165,9 @@ export interface Settings {
   /** Cached area (4-character geohash) and its place name. */
   area: string;
   areaName: string;
+  /** Live tracking (Plus): share your location during runs with these people (that you follow). */
+  liveShare: boolean;
+  safetyContacts: { uid: string; name: string }[];
 }
 
 /** Progress through a training plan (src/plans.ts). */
@@ -216,6 +219,8 @@ export interface LiveSnapshot {
   /** Race mode: seconds ahead (+) or behind (−) the goal plan, and the projected finish time. */
   raceGap: number | null;
   raceProjected: number | null;
+  /** Latest GPS point on the route (for live tracking). */
+  position: { lat: number; lon: number } | null;
 }
 
 /** A pair of running shoes. Distance = startKm + every run saved with this shoeId. */

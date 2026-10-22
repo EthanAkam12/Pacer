@@ -6,7 +6,7 @@ import { Button, Card, Chip, Field, PlusLock, Screen, SectionLabel, Segmented, S
 import { usePlus } from '../../src/plus';
 import { syncReminders } from '../../src/reminders';
 import { ghostCandidates, pickGhost } from '../../src/ghost';
-import { storyById, storyMinutes, storyWorkout } from '../../src/stories';
+import { storyAccess, storyById, storyMinutes, storyWorkout } from '../../src/stories';
 import { useTheme } from '../../src/theme';
 import { HR_OPTIONS, loadPlan, loadRace, loadRuns, loadSettings, loadShoes, loadWorkouts, saveSettings } from '../../src/storage';
 import { daysUntil, shoeKm } from '../../src/gear';
@@ -74,7 +74,8 @@ export default function StartScreen() {
   /** Starts a run from the form, or a training plan session when `ps` is given. */
   async function start(ps?: PlanSession, easier = false, storyRun = false) {
     if (!s) return;
-    const story = storyRun ? storyById(s.story ?? undefined) : null;
+    const story = storyRun && storyById(s.story) && storyAccess(storyById(s.story)!, runs, plus).state === 'open' ? storyById(s.story) : null;
+    if (storyRun && !story) { setError('That story isn\'t available yet.'); return; }
     const mode: RunMode = story ? 'intervals' : ps ? (ps.kind === 'workout' ? 'intervals' : 'distance') : s.mode;
     const goalKm = ps?.km ?? parseFloat(s.goalKm.replace(',', '.'));
     const target = ps ? (ps.targetPace ? Math.round(ps.targetPace * (activePlan?.custom ? paceFactor(progress) : 1)) : null)
@@ -184,9 +185,9 @@ export default function StartScreen() {
         </Card>
       ) : null}
 
-      {plus && storyById(s.story ?? undefined) ? (
+      {storyById(s.story) && storyAccess(storyById(s.story)!, runs, plus).state === 'open' ? (
         <Card style={{ borderColor: t.accent, borderWidth: 1.5 }}>
-          <Text style={{ color: t.accent, fontWeight: '800' }}>{storyById(s.story!)!.emoji} Story run</Text>
+          <Text style={{ color: t.accent, fontWeight: '800' }}>{storyById(s.story!)!.emoji} {storyById(s.story!)!.episode ? `Story run · episode ${storyById(s.story!)!.episode}` : 'Story run'}</Text>
           <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginTop: 2 }}>{storyById(s.story!)!.title}</Text>
           <Text style={{ color: t.muted, marginTop: 2 }}>{storyMinutes(storyById(s.story!)!)} minutes · put your headphones in</Text>
           <Button label={starting ? 'Starting…' : 'Start the story'} onPress={() => start(undefined, false, true)} disabled={starting} style={{ marginTop: 12 }} />
@@ -314,7 +315,7 @@ export default function StartScreen() {
           onPress={() => router.push('/shoes')} />
         {!race || daysUntil(race) < 0 ? <LinkRow icon="flag" label="Add a race" sub="Count down to a race and check your plan fits" onPress={() => router.push('/race')} /> : null}
         {plus && new Date().getDay() === 1 && runs.length ? <LinkRow icon="newspaper" label="Your weekly report is ready" sub="How last week went, and this week's target" onPress={() => router.push('/weekly')} /> : null}
-        <LinkRow icon="book" label={plus ? 'Story runs' : 'Story runs ★'} sub="Run through an adventure: zombies, a heist, Mars" onPress={() => router.push('/stories')} />
+        <LinkRow icon="book" label="Story runs" sub={plus ? 'Outbreak season 1, plus specials' : 'Try episode 1 of Outbreak free'} onPress={() => router.push('/stories')} />
         <LinkRow icon="body" label="Warm up first" sub="5-minute spoken warm-up" onPress={() => router.push('/routine/warmup')} />
       </Card>
 

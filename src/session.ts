@@ -6,7 +6,8 @@ import { configureSpeech, speak } from './speech';
 import { hrStore } from './heartRate';
 import { loadRuns, saveRun } from './storage';
 import { recordAttempt } from './planAdapt';
-import { chapterCue, storyById } from './stories';
+import { chapterCue, nextEpisode, storyById } from './stories';
+import { hasPlus } from './plus';
 import { COACHES, CoachLines } from './coach';
 import { bestEfforts, newPbs, PB_DISTANCES } from './records';
 import { allRanks, RANKED, rankFor } from './ranks';
@@ -193,7 +194,9 @@ class RunSession {
 
     const avg = this.dist > 50 ? t / (this.dist / 1000) : 0;
     if (reached && p.mode === 'intervals' && storyById(p.story)) {
-      this.say(`${storyById(p.story)!.outro} ${cap(sayDist(this.dist))} in ${sayTime(t)}.`, true);
+      const st = storyById(p.story)!, next = nextEpisode(st);
+      const tease = !next ? '' : hasPlus() ? ` Episode ${next.episode}, ${next.title}, unlocks next week.` : ` Episode ${next.episode} is waiting for you in Pacely Plus.`;
+      this.say(`${st.outro} ${cap(sayDist(this.dist))} in ${sayTime(t)}.${tease}`, true);
     } else if (reached && p.mode === 'intervals') {
       this.say(vary(this.lines.workoutDone(sayDist(this.dist), sayTime(t))), true);
     } else if (reached) {
@@ -323,6 +326,7 @@ class RunSession {
       ghostLabel: p?.ghost?.label ?? null,
       raceGap: p?.raceGoal && this.dist > 50 ? Math.round(this.raceDue(this.dist) - t) : null,
       raceProjected: p?.raceGoal && this.dist > 200 ? Math.round(this.raceProjection(t)) : null,
+      position: this.route.length ? { lat: this.route[this.route.length - 1].lat, lon: this.route[this.route.length - 1].lon } : null,
     };
   }
 

@@ -1,4 +1,8 @@
-import { IntervalStep, StepKind, Workout } from './types';
+import { IntervalStep, RunRecord, Workout } from './types';
+import { Chapter, Story, jog, sprint, walk } from './storyKit';
+import { SEASON_1 } from './season1';
+
+export type { Chapter, Story } from './storyKit';
 
 /**
  * Story runs (Pacely Plus). The coach narrates an adventure, and the run/walk/sprint steps are
@@ -6,22 +10,18 @@ import { IntervalStep, StepKind, Workout } from './types';
  * `say` is read when the chapter starts (followed by a short instruction), `mid` halfway through.
  * Effort, not pace, is what matters, so there are no slowing-down warnings on story runs.
  */
-export interface Chapter { kind: StepKind; seconds: number; say: string; mid?: string; sprint?: boolean }
-export interface Story { id: string; title: string; emoji: string; blurb: string; level: string; intro: string; outro: string; chapters: Chapter[] }
-
-const walk = (seconds: number, say: string, mid?: string): Chapter => ({ kind: 'walk', seconds, say, mid });
-const jog = (seconds: number, say: string, mid?: string): Chapter => ({ kind: 'run', seconds, say, mid });
-const sprint = (seconds: number, say: string, mid?: string): Chapter => ({ kind: 'run', seconds, say, mid, sprint: true });
 
 export const STORIES: Story[] = [
   {
-    id: 'outbreak',
+    id: 's1e1',
+    season: 's1',
+    episode: 1,
     title: 'Outbreak',
     emoji: '🧟',
     level: 'Beginner friendly',
     blurb: 'The city has fallen. Get across it to the last rescue helicopter before it leaves at dawn.',
-    intro: 'Outbreak. It\'s 5 a.m. The city went quiet three days ago, and now the only sound is the shuffling. A radio crackles: the last helicopter leaves the stadium at dawn. You\'re six kilometres away. Let\'s go, quietly at first.',
-    outro: 'You burst onto the pitch as the rotors start to turn. A hand grabs yours and pulls you aboard. Below, the city shrinks away. You made it. Outbreak, complete. Brilliant running.',
+    intro: 'Outbreak. Episode 1. It\'s 5 a.m. The city went quiet three days ago, and now the only sound is the shuffling. A radio crackles: the last helicopter leaves the stadium at dawn. You\'re six kilometres away. Let\'s go, quietly at first.',
+    outro: 'You burst onto the pitch as the rotors start to turn. A hand grabs yours and pulls you aboard. The pilot, Rosa, gives you a thumbs up. Below, the city shrinks away. You made it. Then a warning light flashes red. Rosa taps the fuel gauge and swears. "We\'re losing fuel. Hold on. We\'re going down." End of episode 1.',
     chapters: [
       walk(180, 'Slip out of the back door and walk to the end of the alley. Stay low, stay quiet, and let your legs warm up.', 'Something moves behind the bins. Just a cat. Keep walking.'),
       jog(240, 'The main road is clear. Start an easy jog towards the bridge. Smooth and relaxed, save your energy.', 'Abandoned cars everywhere. Weave between them. You\'re doing well.'),
@@ -86,7 +86,54 @@ export const STORIES: Story[] = [
   },
 ];
 
-export const storyById = (id: string | undefined) => STORIES.find((s) => s.id === id) ?? null;
+// Season episodes after the first, in order.
+STORIES.push(...SEASON_1);
+
+export const SEASONS = [
+  { id: 's1', title: 'Outbreak', subtitle: 'Season 1 · 6 episodes', blurb: 'The city has fallen. Get out, find the survivors, reach the island. A new episode every week.' },
+];
+
+const ALIASES: Record<string, string> = { outbreak: 's1e1' };
+export const storyById = (id: string | undefined | null) => STORIES.find((s) => s.id === (ALIASES[id ?? ''] ?? id)) ?? null;
+export const seasonEpisodes = (season: string) => STORIES.filter((s) => s.season === season).sort((a, b) => (a.episode ?? 0) - (b.episode ?? 0));
+export const specials = () => STORIES.filter((s) => !s.season);
+
+/** When a story was first finished (a completed real run, not practice), or null. */
+export function finishedAt(id: string, runs: RunRecord[]): number | null {
+  const ids = [id, ...Object.keys(ALIASES).filter((k) => ALIASES[k] === id)];
+  const done = runs.filter((r) => r.story && ids.includes(r.story) && r.completed && !r.simulated).map((r) => Date.parse(r.startedAt));
+  return done.length ? Math.min(...done) : null;
+}
+
+export type Access =
+  | { state: 'open'; done: boolean }
+  | { state: 'plus' } // needs Pacely Plus
+  | { state: 'previous'; prev: Story } // finish the episode before first
+  | { state: 'wait'; at: number }; // unlocks on this date
+
+const WEEK = 7 * 864e5;
+
+/**
+ * Who can run a story: episode 1 of a season is free for everyone. Later episodes need Plus, the
+ * previous episode finished, and unlock a week apart (counted from when you finished episode 1),
+ * so each one is a new release for that runner. Specials need Plus.
+ */
+export function storyAccess(st: Story, runs: RunRecord[], plus: boolean, now = Date.now()): Access {
+  const done = finishedAt(st.id, runs) !== null;
+  if (st.season && st.episode === 1) return { state: 'open', done };
+  if (!plus) return { state: 'plus' };
+  if (!st.season) return { state: 'open', done };
+  const eps = seasonEpisodes(st.season);
+  const prev = eps.find((e) => e.episode === (st.episode ?? 1) - 1)!;
+  if (finishedAt(prev.id, runs) === null) return { state: 'previous', prev };
+  const first = finishedAt(eps[0].id, runs)!;
+  const at = first + ((st.episode ?? 1) - 1) * WEEK;
+  if (now < at && !done) return { state: 'wait', at };
+  return { state: 'open', done };
+}
+
+/** The next episode of a story's season, if there is one. */
+export const nextEpisode = (st: Story) => (st.season ? seasonEpisodes(st.season).find((e) => e.episode === (st.episode ?? 0) + 1) ?? null : null);
 export const storyMinutes = (s: Story) => Math.round(s.chapters.reduce((a, c) => a + c.seconds, 0) / 60);
 
 /** A story as a workout the coaching engine can run (one interval step per chapter). */

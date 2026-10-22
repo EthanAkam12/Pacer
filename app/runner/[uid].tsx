@@ -46,7 +46,7 @@ export default function RunnerScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <RankBadge id={p.tier} size={64} />
           <View style={{ flex: 1 }}>
-            <Text style={{ color: t.text, fontSize: 24, fontWeight: '900' }}>{p.name}</Text>
+            <Text style={{ color: t.text, fontSize: 24, fontWeight: '900' }}>{p.name}{p.plus ? <Text style={{ color: t.accent, fontSize: 16 }}>  ★ Plus</Text> : null}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Text style={{ color: t.muted }}>{tierLabel} overall</Text>
               <TrophyCount n={p.trophies} />

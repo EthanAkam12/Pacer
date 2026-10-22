@@ -59,6 +59,8 @@ function Routes() {
         <Stack.Screen name="review" options={{ headerShown: true, title: 'Year in review' }} />
         <Stack.Screen name="stories" options={{ headerShown: true, title: 'Story runs' }} />
         <Stack.Screen name="weekly" options={{ headerShown: true, title: 'Weekly report' }} />
+        <Stack.Screen name="safety" options={{ headerShown: true, title: 'Live tracking' }} />
+        <Stack.Screen name="live/[uid]" options={{ headerShown: true, title: 'Live run' }} />
         <Stack.Screen name="plus" options={{ headerShown: true, title: 'Pacely Plus', presentation: 'modal' }} />
         <Stack.Screen name="schedule" options={{ headerShown: true, title: 'Running schedule' }} />
         <Stack.Screen name="achievements" options={{ headerShown: true, title: 'Achievements' }} />

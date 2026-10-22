@@ -26,7 +26,8 @@ service cloud.firestore {
       allow create, update: if isMe(uid)
         && request.resource.data.keys().hasOnly(['name', 'tier', 'rankScore', 'totalKm',
              'best1000', 'best1609', 'best5000', 'best10000', 'best21097', 'best42195',
-             'weekKm', 'weekKey', 'runs', 'recent', 'streak', 'trophies', 'runningSince', 'updatedAt', 'area', 'areaName'])
+             'weekKm', 'weekKey', 'runs', 'recent', 'streak', 'trophies', 'runningSince', 'updatedAt', 'area', 'areaName', 'plus'])
+        && (!('plus' in request.resource.data) || request.resource.data.plus is bool)
         && (!('area' in request.resource.data) || (request.resource.data.area is string && request.resource.data.area.size() <= 6))
         && (!('areaName' in request.resource.data) || (request.resource.data.areaName is string && request.resource.data.areaName.size() <= 40))
         && (!('trophies' in request.resource.data) || (request.resource.data.trophies is int && request.resource.data.trophies >= 0 && request.resource.data.trophies < 10000))
@@ -129,11 +130,23 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/challenges/$(challengeId)).data.winner == uid;
     }
 
+    // Live tracking: a runner's position during a run, readable only by the safety contacts they chose.
+    match /live/{uid} {
+      allow read: if verified() && (request.auth.uid == uid || request.auth.uid in resource.data.viewers);
+      allow delete: if isMe(uid);
+      allow create, update: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['name', 'viewers', 'active', 'paused', 'lat', 'lon', 'trail', 'km', 'secs', 'startedAt', 'updatedAt'])
+        && request.resource.data.viewers is list && request.resource.data.viewers.size() <= 10
+        && request.resource.data.trail is list && request.resource.data.trail.size() <= 60
+        && okName(request.resource.data.name);
+    }
+
     match /weeks/{week}/entries/{uid} {
       allow read: if verified();
       allow delete: if isMe(uid);
       allow create, update: if isMe(uid)
-        && request.resource.data.keys().hasOnly(['name', 'tier', 'km', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['name', 'tier', 'km', 'updatedAt', 'plus'])
+        && (!('plus' in request.resource.data) || request.resource.data.plus is bool)
         && okName(request.resource.data.name)
         && request.resource.data.tier is string && request.resource.data.tier.size() <= 20
         && request.resource.data.km is number

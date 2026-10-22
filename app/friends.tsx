@@ -9,6 +9,7 @@ import { RankBadge } from '../src/badge';
 import { findRunner, follow, followingIds, Profile, profiles } from '../src/friends';
 import { Challenge, CHALLENGE_TYPES, feedFrom, myChallenges, respondToInvite, wellDoneNames } from '../src/social';
 import { CheerCard, FeedItem, TrophyCount } from '../src/socialUi';
+import { LiveDoc, liveForMe } from '../src/live';
 import { fmtShortDate, fmtTime } from '../src/format';
 import { notSetUp } from '../src/leaderboard';
 import { loadRuns } from '../src/storage';
@@ -54,8 +55,22 @@ function Feed({ list }: { list: Profile[] }) {
     });
   }, []));
   const items = feedFrom(list);
+  const [live, setLive] = useState<LiveDoc[]>([]);
+  useFocusEffect(useCallback(() => { liveForMe().then(setLive).catch(() => {}); }, []));
   return (
     <>
+      {live.map((l) => (
+        <Pressable key={l.uid} onPress={() => router.push(`/live/${l.uid}`)} accessibilityRole="button">
+          <Card style={{ borderColor: t.accent, borderWidth: 1.5, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="navigate-circle" size={30} color={l.active ? t.accent : t.muted} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{l.name} {l.active ? 'is running now' : 'finished a run'}</Text>
+              <Text style={{ color: t.muted }}>{l.km.toFixed(2)} km · {fmtTime(l.secs)} · tap to see where they are</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={t.muted} />
+          </Card>
+        </Pressable>
+      ))}
       {list.map((p) => <CheerCard key={p.uid} profile={p} />)}
       {mine.map((m) => (
         <Card key={m.title} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>

@@ -18,7 +18,7 @@ import { RunRecord } from './types';
 /** week/total: most km. rank: best overall rank. best1609 etc: fastest time at that distance. */
 export type Board = 'week' | 'total' | 'rank' | 'trophies' | `best${string}`;
 
-export interface Row { uid: string; name: string; tier: string; value: number; position: number }
+export interface Row { uid: string; name: string; tier: string; value: number; position: number; plus?: boolean }
 
 const TOP = 50;
 
@@ -69,12 +69,17 @@ export async function syncMyEntry(): Promise<void> {
     name, tier: rank.id, totalKm, ...bests, ...(rank.score ? { rankScore: rank.score } : {}),
     weekKm, weekKey: weekKey(), runs: count, recent, streak, updatedAt: serverTimestamp(),
   }, { merge: true });
+  // Plus badge, written separately so older Firestore rules can't block the main update.
+  await setDoc(doc(r.db, 'profiles', r.uid), { plus: !!s.plus, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
   // Local leaderboard: the town of your latest outdoor run. Written separately so older
   // Firestore rules (without these fields) can't stop the rest of the profile updating.
   const local = s.localBoard ? await myArea(runs) : null;
   await setDoc(doc(r.db, 'profiles', r.uid), { ...(local ? { area: local.area, areaName: local.areaName } : { area: deleteField(), areaName: deleteField() }), updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
   const entry = doc(r.db, 'weeks', weekKey(), 'entries', r.uid);
-  if (weekKm > 0) await setDoc(entry, { name, tier: rank.id, km: weekKm, updatedAt: serverTimestamp() });
+  if (weekKm > 0) {
+    await setDoc(entry, { name, tier: rank.id, km: weekKm, updatedAt: serverTimestamp() });
+    await setDoc(entry, { plus: !!s.plus, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
+  }
   else await deleteDoc(entry).catch(() => {});
 }
 
@@ -118,7 +123,7 @@ export async function fetchBoard(board: Board): Promise<{ rows: Row[]; me: Row |
     if (!fastest && !(v[field] > 0)) return;
     // Equal values share a position.
     const position = i > 0 && v[field] === rows[rows.length - 1]?.value ? rows[rows.length - 1].position : i + 1;
-    rows.push({ uid: d.id, name: v.name, tier: v.tier ?? 'unranked', value: v[field], position });
+    rows.push({ uid: d.id, name: v.name, tier: v.tier ?? 'unranked', value: v[field], position, plus: v.plus === true });
   });
 
   let me: Row | null = null;
@@ -129,7 +134,7 @@ export async function fetchBoard(board: Board): Promise<{ rows: Row[]; me: Row |
     const s = await loadSettings();
     if (value && s.leaderboards && r.name) {
       const ahead = await getCountFromServer(query(col, where(field, fastest ? '<' : '>', value)));
-      me = { uid: r.uid, name: r.name, tier: mine.rank.id, value, position: ahead.data().count + 1 };
+      me = { uid: r.uid, name: r.name, tier: mine.rank.id, value, position: ahead.data().count + 1, plus: s.plus };
     }
   }
   return { rows, me };

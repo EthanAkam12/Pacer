@@ -139,7 +139,7 @@ export const DEFAULT_SETTINGS: Settings = {
   plus: false, autoPause: true, treadmill: false, treadmillKmh: '10',
   reminders: false, reminderTime: '18:00', shoeId: null, ghost: 'off',
   raceMode: false, raceGoalTime: '', raceStrategy: 'even', story: null,
-  localBoard: true, area: '', areaName: '',
+  localBoard: true, area: '', areaName: '', liveShare: false, safetyContacts: [],
 };
 export const HR_OPTIONS: { label: string; value: HrEvery }[] = [
   { label: 'Off', value: 'off' }, { label: 'Each split', value: 'split' },

@@ -12,6 +12,7 @@ import { fmtKm, fmtPace, fmtTime } from '../src/format';
 import { KIND_NAME, stepLabel } from '../src/intervals';
 import { syncMyEntry } from '../src/leaderboard';
 import { collectCheers, setRunning, syncAllChallenges } from '../src/social';
+import { endLive, startLive } from '../src/live';
 
 /** Moves an Animated.Value smoothly to each new target, over about one update interval. */
 function useGlide(target: number, ms = 900) {
@@ -49,10 +50,11 @@ export default function RunScreen() {
   useEffect(() => {
     const started = Date.now() - 5 * 60e3; // cheers sent just before you started count too
     setRunning(true).catch(() => {});
+    startLive().catch(() => {});
     const poll = setInterval(() => {
       collectCheers(started).then((list) => list.forEach((c) => session.announceCheer(c.from, c.text))).catch(() => {});
     }, 20000);
-    return () => { clearInterval(poll); setRunning(false).catch(() => {}); };
+    return () => { clearInterval(poll); setRunning(false).catch(() => {}); endLive(); };
   }, []);
 
   useEffect(() => {

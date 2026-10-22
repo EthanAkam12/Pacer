@@ -1,0 +1,106 @@
+import { Story, jog, sprint, walk } from './storyKit';
+
+/**
+ * Season 1: Outbreak. Episode 1 lives in stories.ts (it's the free taster); these are episodes
+ * 2–6, one unlocking each week. Characters: you, Rosa the pilot, and Biscuit the dog (from ep 3).
+ */
+const S = { season: 's1', emoji: '🧟', level: 'Beginner friendly' };
+
+export const SEASON_1: Story[] = [
+  {
+    ...S, id: 's1e2', episode: 2, title: 'The Coast Road',
+    blurb: 'You survived the crash. Now you and Rosa must reach the lighthouse radio before dark.',
+    intro: 'Episode 2. The Coast Road. You wake up on a beach with sand in your mouth. The helicopter is in pieces behind you, and Rosa, the pilot, is pulling you to your feet. "There\'s a lighthouse up the coast," she says. "If the radio works, someone might hear us." The sun is already dropping. Let\'s move.',
+    outro: 'You climb the last of the lighthouse stairs and Rosa flicks the radio on. Static. Then a voice: "This is Fort Kestrel. We hear you. Three days north, through the woods." A pause. "But be careful. Something has been following every signal we answer." The line goes dead. End of episode 2.',
+    chapters: [
+      walk(150, 'Shake off the crash. Walk along the sand with Rosa, and let your legs wake up.', 'Rosa limps a little, but she waves you on. "I\'m fine. Keep going."'),
+      jog(240, 'Up onto the coast road. A gentle jog, side by side. Save your energy.', 'The road curves along the cliffs. Waves crash below.'),
+      sprint(40, 'Movement in the car park ahead! Three of them, and they\'ve smelled you. Go!', 'Past them! Keep going!'),
+      walk(90, 'They\'re slow on the hill. Walk, and get your breath back.'),
+      jog(240, 'Through the old seaside town. Jog past the empty arcades and the ice cream vans.', 'Rosa points: the lighthouse, tiny on the far headland.'),
+      sprint(45, 'A pier gate slams open. A crowd of them, pouring off the pier. Run!', 'Twenty seconds. Push!'),
+      walk(90, 'You duck down a side street and they lose you. Walk it off.'),
+      jog(300, 'The long coastal path now. Steady jog. The wind is behind you, use it.', 'Halfway along the headland. The lighthouse is getting bigger.'),
+      sprint(45, 'The tide is coming in over the causeway to the lighthouse. Beat the water!', 'Nearly across. Faster!'),
+      jog(120, 'You\'re over. Easy jog up the path to the lighthouse door.'),
+      walk(180, 'Walk and cool down as you climb the stairs, round and round, towards the radio.'),
+    ],
+  },
+  {
+    ...S, id: 's1e3', episode: 3, title: 'Kestrel Woods',
+    blurb: 'Three days north through the woods. Something is tracking you, and it\'s faster than the others.',
+    intro: 'Episode 3. Kestrel Woods. Day one of three. The forest path is quiet. Too quiet, Rosa says. Last night you both heard something moving around the lighthouse, faster than the slow ones. Whatever it is, it heard the radio too.',
+    outro: 'The trees open up and there it is: Fort Kestrel, on the hill above the valley. Biscuit barks happily. But as you get closer, you see the gates are wide open. No guards. No lights. No sound at all. End of episode 3.',
+    chapters: [
+      walk(150, 'Walk into the woods. Soft ground, birdsong, and your breathing. Warm up.'),
+      jog(240, 'Easy jog along the forest trail. Watch the roots.', 'Rosa stops to listen, then nods. Keep going.'),
+      sprint(30, 'A crash in the bushes! Something fast is coming. Sprint!'),
+      walk(60, 'It was a deer. Just a deer. Walk and laugh it off.'),
+      jog(240, 'You find an old ranger hut. Inside, a scruffy dog wags its tail. Rosa names him Biscuit. Jog on, Biscuit trotting beside you.', 'Biscuit\'s ears go up. He\'s heard something behind you.'),
+      sprint(45, 'Now you hear it too. Fast footsteps. Not a deer this time. Run!', 'Biscuit is leading the way. Follow him!'),
+      walk(90, 'Biscuit leads you into a stream, and the footsteps lose your scent. Walk through the water.'),
+      jog(300, 'Day two. Steady jog up the valley. Biscuit has found the path.', 'Halfway through the woods. You can see the hills on the other side.'),
+      sprint(50, 'The fast one again, closer this time! Across the rope bridge, now!', 'Don\'t look down. Go go go!'),
+      walk(90, 'Rosa cuts the rope behind you. It can\'t follow. Walk.'),
+      jog(180, 'Day three. Easy jog out of the trees. The fort must be close.'),
+      walk(180, 'Walk up the hill towards the fort. Cool down, and stay alert.'),
+    ],
+  },
+  {
+    ...S, id: 's1e4', episode: 4, title: 'The Empty Fort',
+    blurb: 'Fort Kestrel is deserted. Find out where everyone went before night falls.',
+    intro: 'Episode 4. The Empty Fort. Fort Kestrel is empty, but not abandoned in a panic. Beds are made. Supplies are gone. They left on purpose. Somewhere in here is a clue to where they went. Search fast: the sun is going down.',
+    outro: 'At the harbour wall you finally stop. Rosa is sitting on the ground, holding her ankle. "I twisted it on the stairs," she says. "I can\'t run on this." She presses the map into your hands. "The ferry leaves Port Ashby in two days. You\'ll have to get medicine from Ashby hospital and come back for me." End of episode 4.',
+    chapters: [
+      walk(150, 'Walk through the empty courtyard. Check every doorway.'),
+      jog(180, 'Easy jog around the walls. Biscuit sniffs every corner.', 'The command room is at the top of the east tower.'),
+      walk(60, 'Up the tower stairs. Walk, and catch your breath.'),
+      jog(180, 'Search the command room. A map on the wall: a circle around the island, and a note. "Ferry from Port Ashby, Friday dawn." Jog back down to tell Rosa.'),
+      sprint(40, 'Shouting outside the walls. No, not shouting. Groaning. Hundreds of them. They followed the signal here. Run for the back gate!', 'Down the steps! Go!'),
+      walk(90, 'Out of the back gate and into the dark. Walk quietly.'),
+      jog(300, 'Steady jog along the old railway line towards the coast. Moonlight shows the way.', 'The groans are fading behind you. Biscuit is still with you.'),
+      sprint(45, 'A tunnel ahead, and they\'re coming out of it! Turn and run up the bank!', 'Up and over! Keep pushing!'),
+      walk(90, 'You\'re clear. Walk along the top of the bank.'),
+      jog(240, 'Easy jog down to the harbour town. Nearly there.'),
+      walk(180, 'Walk to the harbour wall and cool down. Something is wrong with Rosa.'),
+    ],
+  },
+  {
+    ...S, id: 's1e5', episode: 5, title: 'Medicine Run',
+    blurb: 'Alone with Biscuit, you have to reach Ashby hospital and get back to Rosa.',
+    intro: 'Episode 5. Medicine Run. It\'s just you and Biscuit now. Ashby hospital is across town, and Rosa is waiting in the old lifeboat station. Get the medicine, get back, and don\'t get seen. Ready?',
+    outro: 'You burst into the lifeboat station with a bag full of supplies. Rosa grins as you strap her ankle. "Not bad for a runner," she says. Then, across the bay, a long, low sound. A ship\'s horn. Rosa\'s face falls. "That\'s the ferry. They\'re leaving early." End of episode 5.',
+    chapters: [
+      walk(150, 'Slip out of the lifeboat station. Walk through the back streets with Biscuit.'),
+      jog(240, 'Jog steadily along the high street. Keep to the shadows.', 'The hospital roof is visible over the houses.'),
+      sprint(40, 'A car alarm goes off right next to you! Every head on the street turns. Run!', 'Round the corner, quick!'),
+      walk(90, 'You hide in a bus shelter until they pass. Walk on, slowly.'),
+      jog(240, 'Through the hospital gates and into the building. Jog the long white corridors to the pharmacy.', 'Second floor. The pharmacy door is open.'),
+      walk(60, 'Fill your bag: bandages, painkillers, a proper splint. Walk back to the stairs.'),
+      sprint(50, 'The lift doors open. It\'s full of them. Run for the fire exit!', 'Down the stairs, three at a time!'),
+      walk(90, 'Outside. Walk and breathe. Biscuit is right beside you.'),
+      jog(300, 'The long way back, along the river. Steady jog.', 'Halfway back. Rosa will be wondering where you are.'),
+      sprint(45, 'The bridge is blocked! Through the park instead, and fast!', 'Nearly there. Push!'),
+      jog(120, 'Easy jog the last stretch to the lifeboat station.'),
+      walk(180, 'Walk in and cool down. You made it back.'),
+    ],
+  },
+  {
+    ...S, id: 's1e6', episode: 6, title: 'The Last Ferry',
+    blurb: 'Season finale. The ferry is leaving early. Everything you\'ve got.',
+    intro: 'Episode 6. The Last Ferry. The finale. The ferry is pulling away from the dock in thirty minutes. Rosa can ride the old harbour bike, and you\'ll run beside her. Biscuit is already at the door. This is it. Let\'s go home.',
+    outro: 'You leap from the end of the pier and land hard on the ferry\'s deck. Strong hands pull Rosa and the bike aboard, and Biscuit jumps into your arms. Behind you, the town gets smaller and smaller. Ahead, the island is green and quiet and safe. You did it. Season 1, complete. Season 2 is coming soon. Amazing running.',
+    chapters: [
+      walk(120, 'Out of the lifeboat station. Walk while Rosa gets the bike going.'),
+      jog(240, 'Rosa pedals, you jog beside her. Steady. The harbour road is long.', 'The ferry\'s funnel is smoking. They\'re getting ready.'),
+      sprint(45, 'A crowd of them, between you and the dock! Through the market instead. Sprint!', 'Left! Then right! Keep going!'),
+      walk(60, 'You\'re past. Walk a moment and catch your breath.'),
+      jog(240, 'Along the seafront. Jog hard but steady, it\'s a long way yet.', 'You can see people on the ferry deck, waving at you.'),
+      sprint(50, 'The fast one from the woods! It\'s found you again! Run!', 'Don\'t stop. Don\'t look back!'),
+      walk(60, 'Biscuit barks and leads it away down an alley. Walk, and hope he comes back.'),
+      jog(180, 'The ferry horn sounds. They\'re untying the ropes. Jog to the pier.', 'Biscuit is back! He\'s running beside you!'),
+      sprint(60, 'The ferry is moving! Down the pier, everything you\'ve got! This is the finish!', 'Jump! Now! Go!'),
+      walk(180, 'Walk around the deck and cool down. You\'re safe. Breathe it in.'),
+    ],
+  },
+];

@@ -82,9 +82,7 @@ export default function RunDetail() {
 
       <FeelCard runId={run.id} />
 
-      {!run.simulated ? (plus ? <CoachReviewCard run={run} /> : (
-        <PlusLock title="Coach review" text="A short review of every run: what went well, what to work on and what to do next." onPress={() => router.push('/plus')} />
-      )) : null}
+      {!run.simulated ? <CoachReviewCard run={run} preview={!plus} onUnlock={() => router.push('/plus')} /> : null}
 
       {run.treadmill ? <TreadmillFix run={run} onSaved={setRun} /> : null}
 
@@ -303,7 +301,7 @@ function ShoePicker({ run, onSaved }: { run: RunRecord; onSaved: (r: RunRecord) 
 }
 
 /** Pacely Plus: the coach's written review of this run. */
-function CoachReviewCard({ run }: { run: RunRecord }) {
+function CoachReviewCard({ run, preview, onUnlock }: { run: RunRecord; preview: boolean; onUnlock: () => void }) {
   const t = useTheme();
   const [review, setReview] = useState<Review | null>(null);
   useEffect(() => {
@@ -326,9 +324,29 @@ function CoachReviewCard({ run }: { run: RunRecord }) {
         <Text style={{ color: t.accent, fontWeight: '800' }}>Coach review</Text>
       </View>
       <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', marginTop: 4 }}>{review.headline}</Text>
-      {review.good.map((g) => line('checkmark-circle', t.accent, g))}
-      {review.improve.map((g) => line('arrow-up-circle', '#E0A100', g))}
-      <Text style={{ color: t.text, fontWeight: '700', marginTop: 12, lineHeight: 20 }}>{review.next}</Text>
+      {preview ? (
+        <>
+          {review.good.slice(0, 1).map((g) => line('checkmark-circle', t.accent, g))}
+          {/* The rest is hidden behind Plus: grey bars where the tips would be. */}
+          {[0.9, 0.7, 0.8].slice(0, Math.max(1, review.good.length - 1 + review.improve.length)).map((w, i) => (
+            <View key={i} style={{ flexDirection: 'row', gap: 8, marginTop: 10, alignItems: 'center' }}>
+              <Ionicons name="lock-closed" size={16} color={t.muted} />
+              <View style={{ height: 12, borderRadius: 6, backgroundColor: t.chip, width: `${w * 85}%` }} />
+            </View>
+          ))}
+          <Pressable onPress={onUnlock} accessibilityRole="button" style={{ marginTop: 12 }}>
+            <Text style={{ color: t.accent, fontWeight: '800' }}>
+              {review.good.length - 1 + review.improve.length + 1} more {review.good.length - 1 + review.improve.length + 1 === 1 ? 'tip' : 'tips'} from your coach, including what to do next. Unlock with Pacely Plus →
+            </Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          {review.good.map((g) => line('checkmark-circle', t.accent, g))}
+          {review.improve.map((g) => line('arrow-up-circle', '#E0A100', g))}
+          <Text style={{ color: t.text, fontWeight: '700', marginTop: 12, lineHeight: 20 }}>{review.next}</Text>
+        </>
+      )}
     </Card>
   );
 }
